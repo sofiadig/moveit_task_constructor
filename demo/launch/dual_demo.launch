@@ -4,5 +4,10 @@
   <node name="mtc_tutorial" pkg="moveit_task_constructor_demo" type="dual_demo" output="screen">
     <param name="execute" value="true" />
     <rosparam command="load" file="$(find moveit_task_constructor_demo)/config/panda_config.yaml" />
+
+    <!-- Robot description parameters -->
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find moveit_resources_panda_description)/urdf/dual_panda.urdf.xacro"/>
+    <param name="robot_description_semantic" textfile="$(find moveit_resources_dual_panda_moveit_config)/config/panda.srdf"/>
+    <rosparam command="load" file="$(find moveit_resources_dual_panda_moveit_config)/config/kinematics.yaml"/>
   </node>
 </launch>
