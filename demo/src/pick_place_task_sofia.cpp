@@ -36,6 +36,8 @@
 
 #include <moveit_task_constructor_demo/pick_place_task_sofia.h>
 #include <rosparam_shortcuts/rosparam_shortcuts.h>
+// TF2
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 namespace moveit_task_constructor_demo {
 
@@ -145,7 +147,7 @@ void PickPlaceTask::loadParameters() {
 }
 
 bool PickPlaceTask::init() {
-	ROS_INFO_NAMED(LOGNAME, "Initializing task pipeline");
+	ROS_INFO_NAMED(LOGNAME, "Sofia's Version: Initializing task pipeline");
 	const std::string object = object_name_;
 
 	// Reset ROS introspection before constructing the new object
@@ -234,7 +236,7 @@ bool PickPlaceTask::init() {
 		grasp->properties().configureInitFrom(Stage::PARENT, { "eef", "hand", "group", "ik_frame" });
 
 		/****************************************************
-  ---- *               Approach Object                    *
+  ---- *               Approach Object                      *
 		 ***************************************************/
 		{
 			auto stage = std::make_unique<stages::MoveRelative>("approach object", cartesian_planner);
@@ -252,18 +254,30 @@ bool PickPlaceTask::init() {
 		}
 
 		/****************************************************
-  ---- *               Generate Grasp Pose                *
+  ---- *               Generate Fixed Grasp Pose            *
 		 ***************************************************/
 		{
-			// Sample grasp pose
-			auto stage = std::make_unique<stages::GenerateGraspPose>("generate grasp pose");
+			// Create grasp pose
+			geometry_msgs::PoseStamped grasp_pose;
+			// Position
+			grasp_pose.header.frame_id = object_reference_frame_;
+			grasp_pose.pose.position.x = 0.5;
+			grasp_pose.pose.position.y = -0.25;
+			grasp_pose.pose.position.z = 0.0;
+			grasp_pose.pose.position.z += 0.5 * object_dimensions_[0] + place_surface_offset_;
+
+			// Orientation
+			tf2::Quaternion orientation;
+			orientation.setRPY(0, 0, M_PI/4);
+			grasp_pose.pose.orientation = tf2::toMsg(orientation);
+			
+			// Add fixed pose as stage
+			auto stage = std::make_unique<stages::FixedCartesianPoses>("fixed grasp pose");
 			stage->properties().configureInitFrom(Stage::PARENT);
 			stage->properties().set("marker_ns", "grasp_pose");
-			stage->setPreGraspPose(hand_open_pose_);
-			stage->setObject(object);
-			stage->setAngleDelta(M_PI / 12);
-			stage->setMonitoredStage(initial_state_ptr);  // hook into successful initial-phase solutions
-
+			stage->addPose(grasp_pose);
+			stage->setMonitoredStage(initial_state_ptr);
+			
 			// Compute IK
 			auto wrapper = std::make_unique<stages::ComputeIK>("grasp pose IK", std::move(stage));
 			wrapper->setMaxIKSolutions(8);
@@ -275,7 +289,7 @@ bool PickPlaceTask::init() {
 		}
 
 		/****************************************************
-  ---- *               Allow Collision (hand object)   *
+  ---- *               Allow Collision (hand object)        *
 		 ***************************************************/
 		{
 			auto stage = std::make_unique<stages::ModifyPlanningScene>("allow collision (hand,object)");
@@ -286,7 +300,7 @@ bool PickPlaceTask::init() {
 		}
 
 		/****************************************************
-  ---- *               Close Hand                      *
+  ---- *               Close Hand                           *
 		 ***************************************************/
 		{
 			auto stage = std::make_unique<stages::MoveTo>("close hand", sampling_planner);
@@ -296,7 +310,7 @@ bool PickPlaceTask::init() {
 		}
 
 		/****************************************************
-  .... *               Attach Object                      *
+  .... *               Attach Object                        *
 		 ***************************************************/
 		{
 			auto stage = std::make_unique<stages::ModifyPlanningScene>("attach object");

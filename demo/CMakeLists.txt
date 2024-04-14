@@ -7,13 +7,33 @@ find_package(catkin REQUIRED COMPONENTS
 	moveit_task_constructor_core
 	moveit_ros_planning_interface
 	rosparam_shortcuts
+	urdf
 )
+
+# include_directories(
+#   include
+#   ${catkin_INCLUDE_DIRS}
+# )
 
 moveit_build_options()
 
 catkin_package(
-	CATKIN_DEPENDS roscpp
+	CATKIN_DEPENDS roscpp # urdf moveit_core moveit_ros_planning_interface
 )
+
+
+# added by me
+add_library(${PROJECT_NAME}_pick_place_task_sofia src/pick_place_task_sofia.cpp)
+target_link_libraries(${PROJECT_NAME}_pick_place_task_sofia ${catkin_LIBRARIES})
+target_include_directories(${PROJECT_NAME}_pick_place_task_sofia PUBLIC include)
+target_include_directories(${PROJECT_NAME}_pick_place_task_sofia SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
+add_dependencies(${PROJECT_NAME}_pick_place_task_sofia ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+install(TARGETS ${PROJECT_NAME}_pick_place_task_sofia
+	ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+	LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+	RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+# until here
 
 add_library(${PROJECT_NAME}_pick_place_task src/pick_place_task.cpp)
 target_link_libraries(${PROJECT_NAME}_pick_place_task ${catkin_LIBRARIES})
@@ -48,6 +68,10 @@ demo(fallbacks_move_to)
 
 demo(pick_place_demo)
 target_link_libraries(${PROJECT_NAME}_pick_place_demo ${PROJECT_NAME}_pick_place_task)
+
+demo(pick_place_demo_sofia)
+target_link_libraries(${PROJECT_NAME}_pick_place_demo_sofia ${PROJECT_NAME}_pick_place_task_sofia)
+
 
 install(DIRECTORY launch config
 	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}

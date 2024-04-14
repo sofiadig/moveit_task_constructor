@@ -1,46 +1,21 @@
-/*********************************************************************
- * BSD 3-Clause License
- *
- * Copyright (c) 2019 PickNik LLC.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- *  * Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- *
- *  * Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- *  * Neither the name of the copyright holder nor the names of its
- *    contributors may be used to endorse or promote products derived from
- *    this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *********************************************************************/
-
-/* Author: Henning Kayser, Simon Goldstein
-   Desc:   A demo to show MoveIt Task Constructor in action
-*/
-
 #include <moveit_task_constructor_demo/pick_place_task_sofia.h>
 #include <rosparam_shortcuts/rosparam_shortcuts.h>
+#include <dual_pickplace.h>
+// TF2
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 namespace moveit_task_constructor_demo {
 
 constexpr char LOGNAME[] = "moveit_task_constructor_demo";
 constexpr char PickPlaceTask::LOGNAME[];
+enum GripperState {GRIPPER_OPEN, GRIPPER_CLOSE};
+enum ObjectAction { ATTACH, DETACH };
+// The hand over position w.r.t frame1. w.r.t frame2: x1=x2 and z1=z2, but for y we know the distance of 2 robots is 0.9 so
+// y2 = y1 - 0.9 (negative: the ho position is between the robots, the movement of robot2 in y is opposite the one for robot1)
+float ho_x = -0.15, ho_y = 0.5, ho_z = 0.5;
+float obj_x = 0.65, obj_y = 0.0, obj_z = 0.5; // The position of the object.
+float place_x = 0.55, place_y = 0.0, place_z = 0.5; // The destination position.
+const double tau = 2 * M_PI; // tau = 2*pi. One tau is one rotation in radians. So one tau is one complete tyrn or rotation.
 
 void spawnObject(moveit::planning_interface::PlanningSceneInterface& psi, const moveit_msgs::CollisionObject& object) {
 	if (!psi.applyCollisionObject(object))
@@ -113,7 +88,16 @@ void PickPlaceTask::loadParameters() {
 	 ***************************************************/
 	ROS_INFO_NAMED(LOGNAME, "Loading task parameters");
 
-	// Planning group properties
+	// Planning group properties: robot 1
+	size_t errors = 0;
+	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "arm_group_name", arm_group_name_);
+	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "hand_group_name", hand_group_name_);
+	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "eef_name", eef_name_);
+	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "hand_frame", hand_frame_);
+	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "world_frame", world_frame_);
+	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "grasp_frame_transform", grasp_frame_transform_);
+
+  // Planning group properties: robot 2
 	size_t errors = 0;
 	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "arm_group_name", arm_group_name_);
 	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "hand_group_name", hand_group_name_);
@@ -145,7 +129,7 @@ void PickPlaceTask::loadParameters() {
 }
 
 bool PickPlaceTask::init() {
-	ROS_INFO_NAMED(LOGNAME, "Initializing task pipeline");
+	ROS_INFO_NAMED(LOGNAME, "Sofia's Version: Initializing task pipeline");
 	const std::string object = object_name_;
 
 	// Reset ROS introspection before constructing the new object
@@ -234,7 +218,7 @@ bool PickPlaceTask::init() {
 		grasp->properties().configureInitFrom(Stage::PARENT, { "eef", "hand", "group", "ik_frame" });
 
 		/****************************************************
-  ---- *               Approach Object                    *
+  ---- *               Approach Object                      *
 		 ***************************************************/
 		{
 			auto stage = std::make_unique<stages::MoveRelative>("approach object", cartesian_planner);
@@ -252,18 +236,30 @@ bool PickPlaceTask::init() {
 		}
 
 		/****************************************************
-  ---- *               Generate Grasp Pose                *
+  ---- *               Generate Fixed Grasp Pose            *
 		 ***************************************************/
 		{
-			// Sample grasp pose
-			auto stage = std::make_unique<stages::GenerateGraspPose>("generate grasp pose");
+			// Create grasp pose
+			geometry_msgs::PoseStamped grasp_pose;
+			// Position
+			grasp_pose.header.frame_id = object_reference_frame_;
+			grasp_pose.pose.position.x = 0.5;
+			grasp_pose.pose.position.y = -0.25;
+			grasp_pose.pose.position.z = 0.0;
+			grasp_pose.pose.position.z += 0.5 * object_dimensions_[0] + place_surface_offset_;
+
+			// Orientation
+			tf2::Quaternion orientation;
+			orientation.setRPY(0, 0, M_PI/4);
+			grasp_pose.pose.orientation = tf2::toMsg(orientation);
+			
+			// Add fixed pose as stage
+			auto stage = std::make_unique<stages::FixedCartesianPoses>("fixed grasp pose");
 			stage->properties().configureInitFrom(Stage::PARENT);
 			stage->properties().set("marker_ns", "grasp_pose");
-			stage->setPreGraspPose(hand_open_pose_);
-			stage->setObject(object);
-			stage->setAngleDelta(M_PI / 12);
-			stage->setMonitoredStage(initial_state_ptr);  // hook into successful initial-phase solutions
-
+			stage->addPose(grasp_pose);
+			stage->setMonitoredStage(initial_state_ptr);
+			
 			// Compute IK
 			auto wrapper = std::make_unique<stages::ComputeIK>("grasp pose IK", std::move(stage));
 			wrapper->setMaxIKSolutions(8);
@@ -275,7 +271,7 @@ bool PickPlaceTask::init() {
 		}
 
 		/****************************************************
-  ---- *               Allow Collision (hand object)   *
+  ---- *               Allow Collision (hand object)        *
 		 ***************************************************/
 		{
 			auto stage = std::make_unique<stages::ModifyPlanningScene>("allow collision (hand,object)");
@@ -286,7 +282,7 @@ bool PickPlaceTask::init() {
 		}
 
 		/****************************************************
-  ---- *               Close Hand                      *
+  ---- *               Close Hand                           *
 		 ***************************************************/
 		{
 			auto stage = std::make_unique<stages::MoveTo>("close hand", sampling_planner);
@@ -296,7 +292,7 @@ bool PickPlaceTask::init() {
 		}
 
 		/****************************************************
-  .... *               Attach Object                      *
+  .... *               Attach Object                        *
 		 ***************************************************/
 		{
 			auto stage = std::make_unique<stages::ModifyPlanningScene>("attach object");
