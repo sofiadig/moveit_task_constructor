@@ -69,6 +69,10 @@ demo(fallbacks_move_to)
 demo(pick_place_demo)
 target_link_libraries(${PROJECT_NAME}_pick_place_demo ${PROJECT_NAME}_pick_place_task)
 
+add_executable(dual_demo src/dual_with_main.cpp)
+target_link_libraries(dual_demo ${catkin_LIBRARIES})
+target_include_directories(dual_demo SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
+
 demo(pick_place_demo_sofia)
 target_link_libraries(${PROJECT_NAME}_pick_place_demo_sofia ${PROJECT_NAME}_pick_place_task_sofia)
 
