@@ -219,26 +219,30 @@ void StagePrivate::sendBackward(InterfaceState&& from, const InterfaceState& to,
 	newSolution(solution);
 }
 
-void StagePrivate::spawn(InterfaceState&& state, const SolutionBasePtr& solution) {
+void StagePrivate::spawn(InterfaceState&& from, InterfaceState&& to, const SolutionBasePtr& solution) {
 	assert(prevEnds() && nextStarts());
 
-	computeCost(state, state, *solution);
+	computeCost(from, to, *solution);
 
 	if (!storeSolution(solution, nullptr, nullptr))
 		return;  // solution dropped
 
-	auto from = states_.insert(states_.end(), InterfaceState(state));  // copy
-	auto to = states_.insert(states_.end(), std::move(state));
+	auto from_it = states_.insert(states_.end(), std::move(from));
+	auto to_it = states_.insert(states_.end(), std::move(to));
 
-	solution->setStartState(*from);
-	solution->setEndState(*to);
+	solution->setStartState(*from_it);
+	solution->setEndState(*to_it);
 
 	if (!solution->isFailure()) {
-		prevEnds()->add(*from);
-		nextStarts()->add(*to);
+		prevEnds()->add(*from_it);
+		nextStarts()->add(*to_it);
 	}
 
 	newSolution(solution);
+}
+
+void StagePrivate::spawn(InterfaceState&& state, const SolutionBasePtr& solution) {
+	spawn(InterfaceState(state), std::move(state), solution);
 }
 
 void StagePrivate::connect(const InterfaceState& from, const InterfaceState& to, const SolutionBasePtr& solution) {
@@ -308,6 +312,8 @@ Stage::Stage(StagePrivate* impl) : pimpl_(impl) {
 	auto& p = properties();
 	p.declare<double>("timeout", "timeout per run (s)");
 	p.declare<std::string>("marker_ns", name(), "marker namespace");
+	p.declare<TrajectoryExecutionInfo>("trajectory_execution_info", TrajectoryExecutionInfo(),
+	                                   "settings used when executing the trajectory");
 
 	p.declare<std::set<std::string>>("forwarded_properties", std::set<std::string>(),
 	                                 "set of interface properties to forward");
@@ -685,6 +691,10 @@ void GeneratorPrivate::compute() {
 
 Generator::Generator(GeneratorPrivate* impl) : ComputeBase(impl) {}
 Generator::Generator(const std::string& name) : Generator(new GeneratorPrivate(this, name)) {}
+
+void Generator::spawn(InterfaceState&& from, InterfaceState&& to, SubTrajectory&& t) {
+	pimpl()->spawn(std::move(from), std::move(to), std::make_shared<SubTrajectory>(std::move(t)));
+}
 
 void Generator::spawn(InterfaceState&& state, SubTrajectory&& t) {
 	pimpl()->spawn(std::move(state), std::make_shared<SubTrajectory>(std::move(t)));
