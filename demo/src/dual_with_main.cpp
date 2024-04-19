@@ -101,40 +101,40 @@ void addCollisionObjects(moveit::planning_interface::PlanningSceneInterface& pla
     std::vector<moveit_msgs::CollisionObject> collision_objects;
     collision_objects.resize(3);
 
-  // Table1, cylinder shape:
-    collision_objects[0].id = "table1";
-    collision_objects[0].header.frame_id = "panda_1_link0";
-    // Shape and size
-    collision_objects[0].primitives.resize(1);
-    collision_objects[0].primitives[0].type = collision_objects[0].primitives[0].CYLINDER;
-    collision_objects[0].primitives[0].dimensions.resize(2);
-    collision_objects[0].primitives[0].dimensions[0] = 0.4;  // Height
-    collision_objects[0].primitives[0].dimensions[1] = 0.15;  // Radius
-    // Position and orientation
-    collision_objects[0].primitive_poses.resize(1);
-    collision_objects[0].primitive_poses[0].position.x = 0.7;
-    collision_objects[0].primitive_poses[0].position.y = 0;
-    collision_objects[0].primitive_poses[0].position.z = 0.2;
-    collision_objects[0].primitive_poses[0].orientation.w = 1.0;
-    collision_objects[0].operation = collision_objects[0].ADD;
+  // // Table1, cylinder shape:
+  //   collision_objects[0].id = "table1";
+  //   collision_objects[0].header.frame_id = "panda_1_link0";
+  //   // Shape and size
+  //   collision_objects[0].primitives.resize(1);
+  //   collision_objects[0].primitives[0].type = collision_objects[0].primitives[0].CYLINDER;
+  //   collision_objects[0].primitives[0].dimensions.resize(2);
+  //   collision_objects[0].primitives[0].dimensions[0] = 0.4;  // Height
+  //   collision_objects[0].primitives[0].dimensions[1] = 0.15;  // Radius
+  //   // Position and orientation
+  //   collision_objects[0].primitive_poses.resize(1);
+  //   collision_objects[0].primitive_poses[0].position.x = 0.7;
+  //   collision_objects[0].primitive_poses[0].position.y = 0;
+  //   collision_objects[0].primitive_poses[0].position.z = 0.2;
+  //   collision_objects[0].primitive_poses[0].orientation.w = 1.0;
+  //   collision_objects[0].operation = collision_objects[0].ADD;
 
-  // Table2, cubic shape:
-    collision_objects[1].id = "table2";
-    collision_objects[1].header.frame_id = "panda_2_link0";
-    // Shape and size
-    collision_objects[1].primitives.resize(1);
-    collision_objects[1].primitives[0].type = collision_objects[1].primitives[0].BOX;
-    collision_objects[1].primitives[0].dimensions.resize(3);
-    collision_objects[1].primitives[0].dimensions[0] = 0.2;
-    collision_objects[1].primitives[0].dimensions[1] = 0.2;
-    collision_objects[1].primitives[0].dimensions[2] = 0.4;
-    // Position and orientation
-    collision_objects[1].primitive_poses.resize(1);
-    collision_objects[1].primitive_poses[0].position.x = 0.6;
-    collision_objects[1].primitive_poses[0].position.y = 0.0;
-    collision_objects[1].primitive_poses[0].position.z = 0.2;
-    collision_objects[1].primitive_poses[0].orientation.w = 1.0;
-    collision_objects[1].operation = collision_objects[1].ADD;
+  // // Table2, cubic shape:
+  //   collision_objects[1].id = "table2";
+  //   collision_objects[1].header.frame_id = "panda_2_link0";
+  //   // Shape and size
+  //   collision_objects[1].primitives.resize(1);
+  //   collision_objects[1].primitives[0].type = collision_objects[1].primitives[0].BOX;
+  //   collision_objects[1].primitives[0].dimensions.resize(3);
+  //   collision_objects[1].primitives[0].dimensions[0] = 0.2;
+  //   collision_objects[1].primitives[0].dimensions[1] = 0.2;
+  //   collision_objects[1].primitives[0].dimensions[2] = 0.4;
+  //   // Position and orientation
+  //   collision_objects[1].primitive_poses.resize(1);
+  //   collision_objects[1].primitive_poses[0].position.x = 0.6;
+  //   collision_objects[1].primitive_poses[0].position.y = 0.0;
+  //   collision_objects[1].primitive_poses[0].position.z = 0.2;
+  //   collision_objects[1].primitive_poses[0].orientation.w = 1.0;
+  //   collision_objects[1].operation = collision_objects[1].ADD;
 
   // Object, cubic box
     collision_objects[2].header.frame_id = "panda_1_link0";
