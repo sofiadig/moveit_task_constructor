@@ -23,17 +23,21 @@ catkin_package(
 
 
 # added by me
-add_library(${PROJECT_NAME}_pick_place_task_sofia src/pick_place_task_sofia.cpp)
-target_link_libraries(${PROJECT_NAME}_pick_place_task_sofia ${catkin_LIBRARIES})
-target_include_directories(${PROJECT_NAME}_pick_place_task_sofia PUBLIC include)
-target_include_directories(${PROJECT_NAME}_pick_place_task_sofia SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
-add_dependencies(${PROJECT_NAME}_pick_place_task_sofia ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-install(TARGETS ${PROJECT_NAME}_pick_place_task_sofia
-	ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-	LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-	RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+function(pickplace name)
+	add_library(${PROJECT_NAME}_${name} src/${name}.cpp)
+	target_link_libraries(${PROJECT_NAME}_${name} ${catkin_LIBRARIES})
+	target_include_directories(${PROJECT_NAME}_${name} PUBLIC include)
+	target_include_directories(${PROJECT_NAME}_${name} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
+	add_dependencies(${PROJECT_NAME}_${name} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+	install(TARGETS ${PROJECT_NAME}_${name}
+		ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+		LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+		RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+	)
+endfunction()
 # until here
+pickplace(pick_place_task_sofia)
+pickplace(dual_pickplace)
 
 add_library(${PROJECT_NAME}_pick_place_task src/pick_place_task.cpp)
 target_link_libraries(${PROJECT_NAME}_pick_place_task ${catkin_LIBRARIES})
@@ -68,13 +72,16 @@ demo(fallbacks_move_to)
 
 demo(pick_place_demo)
 target_link_libraries(${PROJECT_NAME}_pick_place_demo ${PROJECT_NAME}_pick_place_task)
+demo(pick_place_demo_sofia)# Same porcedure as pick_place_demo
+target_link_libraries(${PROJECT_NAME}_pick_place_demo_sofia ${PROJECT_NAME}_pick_place_task_sofia)
+demo(dual_pickplace_demo)
+target_link_libraries(${PROJECT_NAME}_dual_pickplace_demo ${PROJECT_NAME}_dual_pickplace)
 
+
+## Dual_demo for file dual_with_main.cpp
 add_executable(dual_demo src/dual_with_main.cpp)
 target_link_libraries(dual_demo ${catkin_LIBRARIES})
 target_include_directories(dual_demo SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
-
-demo(pick_place_demo_sofia)
-target_link_libraries(${PROJECT_NAME}_pick_place_demo_sofia ${PROJECT_NAME}_pick_place_task_sofia)
 
 
 install(DIRECTORY launch config

@@ -33,59 +33,65 @@
 
 
 namespace moveit_task_constructor_demo {
-using namespace moveit::task_constructor;
-    
+	using namespace moveit::task_constructor;
+
+	// prepare a demo environment from ROS parameters under pnh
+void setupDemoScene(ros::NodeHandle& pnh);
 class Dual_Pickplace
 {
-public:
-    Dual_Pickplace(const std::string& task_name, const ros::NodeHandle& pnh);
-    ~Dual_Pickplace() = default;
+	public:
+		Dual_Pickplace(const std::string& task_name, const ros::NodeHandle& pnh);
+		~Dual_Pickplace() = default;
 
-    bool init();
+		bool init();
 
-	bool plan();
+		bool plan();
 
-	bool execute();
+		bool execute();
 
-private:
-    void loadParameters();
+	private:
+		void loadParameters();
 
-	static constexpr char LOGNAME[]{ "pick_place_task" };
+		static constexpr char LOGNAME[]{ "dual_pickplace" };
 
-	ros::NodeHandle pnh_;
+		ros::NodeHandle pnh_;
 
-	std::string task_name_;
-	moveit::task_constructor::TaskPtr task_;
+		std::string task_name_;
+		moveit::task_constructor::TaskPtr task_;
 
-	// planning group properties
-	std::string arm_group_name_;
-	std::string eef_name_;
-	std::string hand_group_name_;
-	std::string hand_frame_;
+		// planning group properties
+		std::string arm_1_group_name_;
+		std::string eef_1_name_;
+		std::string hand_1_group_name_;
+		std::string hand_1_frame_;
+		// planning group properties
+		std::string arm_2_group_name_;
+		std::string eef_2_name_;
+		std::string hand_2_group_name_;
+		std::string hand_2_frame_;
 
-	// object + surface
-	std::vector<std::string> support_surfaces_;
-	std::string object_reference_frame_;
-	std::string surface_link_;
-	std::string object_name_;
-	std::string world_frame_;
-	std::vector<double> object_dimensions_;
+		// object + surface
+		std::vector<std::string> support_surfaces_;
+		std::string object_reference_frame_;
+		std::string surface_link_;
+		std::string object_name_;
+		std::string world_frame_;
+		std::vector<double> object_dimensions_;
 
-	// Predefined pose targets
-	std::string hand_open_pose_;
-	std::string hand_close_pose_;
-	std::string arm_home_pose_;
+		// Predefined pose targets
+		std::string hand_open_pose_;
+		std::string hand_close_pose_;
+		std::string arm_home_pose_;
 
-	// Pick metrics
-	Eigen::Isometry3d grasp_frame_transform_;
-	double approach_object_min_dist_;
-	double approach_object_max_dist_;
-	double lift_object_min_dist_;
-	double lift_object_max_dist_;
+		// Pick metrics
+		Eigen::Isometry3d grasp_frame_transform_;
+		double approach_object_min_dist_;
+		double approach_object_max_dist_;
+		double lift_object_min_dist_;
+		double lift_object_max_dist_;
 
-	// Place metrics
-	geometry_msgs::Pose place_pose_;
-	double place_surface_offset_;
-}
-
+		// Place metrics
+		geometry_msgs::Pose place_pose_;
+		double place_surface_offset_;
+};
 }
