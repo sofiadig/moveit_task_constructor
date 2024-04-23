@@ -24,6 +24,7 @@ int main(int argc, char** argv) {
 		ROS_INFO_NAMED(LOGNAME, "Initialization failed");
 		return 1;
 	}
+	ROS_INFO_NAMED(LOGNAME, "Initialization successful. Starting Planning.");
 
 	if (dual_pickplace.plan()) {
 		ROS_INFO_NAMED(LOGNAME, "Planning succeded");

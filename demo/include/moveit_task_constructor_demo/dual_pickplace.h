@@ -79,9 +79,9 @@ class Dual_Pickplace
 		std::vector<double> object_dimensions_;
 
 		// Predefined pose targets
-		std::string hand_open_pose_;
-		std::string hand_close_pose_;
-		std::string arm_home_pose_;
+		std::string hand_1_open_pose_;
+		std::string hand_1_close_pose_;
+		std::string arm_1_home_pose_;
 
 		// Pick metrics
 		Eigen::Isometry3d grasp_frame_transform_;
