@@ -191,12 +191,12 @@ bool Dual_Pickplace::init() {
 	 *               Open Hand                          *
 	 *                                                  *
 	 ***************************************************/
-	Stage* initial_state_ptr = nullptr;
+	//Stage* initial_state_ptr = nullptr;
 	{  // Open Hand
 		auto stage = std::make_unique<stages::MoveTo>("open hand_1", sampling_planner);
 		stage->setGroup(hand_1_group_name_);
 		stage->setGoal(hand_1_open_pose_);
-		initial_state_ptr = stage.get();  // remember start state for monitoring grasp pose generator
+		//initial_state_ptr = stage.get();  // remember start state for monitoring grasp pose generator
 		t.add(std::move(stage));
 	}
 
