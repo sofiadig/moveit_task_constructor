@@ -99,10 +99,10 @@ void Dual_Pickplace::loadParameters() {
 
 	// Planning group_1 properties: robot 1
 	size_t errors = 0;
-	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "arm_1_group_name", arm_1_group_name_);
-	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "hand_1_group_name", hand_1_group_name_);
-	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "eef_1_name", eef_1_name_);
-	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "hand_1_frame", hand_1_frame_);
+	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "arm_1_group_name", arm_1_group_name_);//arm_1_group_name_=panda_1
+	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "hand_1_group_name", hand_1_group_name_);//hand_1_group_name_: "hand_1"
+	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "eef_1_name", eef_1_name_);//eef_1_name_: "hand_1"
+	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "hand_1_frame", hand_1_frame_);//hand_1_frame_: "panda_1_link8"
 
     // Planning group_1 properties: robot 2
 	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "arm_2_group_name", arm_2_group_name_);
@@ -184,6 +184,19 @@ bool Dual_Pickplace::init() {
 			return true;
 		});
 		t.add(std::move(applicability_filter));
+	}
+	/****************************************************
+	 *                                                  *
+	 *               Move arm    (trying out random)    *
+	 *                                                  *
+	 ***************************************************/
+	//Stage* initial_state_ptr = nullptr;
+	{  // Open Hand
+		// auto stage = std::make_unique<stages::MoveTo>("move arm to ready", sampling_planner);
+		// stage->setGroup(arm_1_group_name_);
+		// stage->setGoal(arm_1_home_pose_);
+		// //initial_state_ptr = stage.get();  // remember start state for monitoring grasp pose generator
+		// t.add(std::move(stage));
 	}
 
 	/****************************************************

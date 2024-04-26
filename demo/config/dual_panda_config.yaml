@@ -12,9 +12,9 @@ hand_1_frame: "panda_1_link8"
 hand_2_frame: "panda_2_link8"
 
 # Poses
-hand_1_open_pose: "open_1"
-hand_1_close_pose: "close_1"
-arm_1_home_pose: "ready_1"
+hand_1_open_pose: "open"
+hand_1_close_pose: "close"
+arm_1_home_pose: "ready"
 
 # Scene frames
 world_frame: "world"

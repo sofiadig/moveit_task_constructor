@@ -7,13 +7,13 @@
   <!-- <env name="ROSCONSOLE_CONFIG_FILE"
        value="$(find moveit_task_constructor_demo)/config/custom_rosconsole.config"/> -->
 
-  <include file="$(find moveit_resources_dual_panda_moveit_config)/launch/demo.launch">
+  <include file="$(find moveit_resources_panda_moveit_config)/launch/demo.launch">
     <arg name="use_rviz" value="false"/>
   </include>
   <param name="move_group/capabilities" value="move_group/ExecuteTaskSolutionCapability" />
 
   <!-- Run rviz with prepared config -->
-  <include file="$(find moveit_resources_dual_panda_moveit_config)/launch/moveit_rviz.launch">
-    <arg name="rviz_config" value="$(find moveit_task_constructor_demo)/config/mtc_dual.rviz" />
+  <include file="$(find moveit_resources_panda_moveit_config)/launch/moveit_rviz.launch">
+    <arg name="rviz_config" value="$(find moveit_task_constructor_demo)/config/mtc.rviz" />
   </include>
 </launch>
