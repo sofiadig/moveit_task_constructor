@@ -4,8 +4,28 @@
   <env name="ROSCONSOLE_CONFIG_FILE"
     value="$(find moveit_task_constructor_demo)/config/custom_rosconsole.config"/>
   
+  <!-- Part from demo.launch -->
+  <!-- <include file="$(find moveit_resources_dual_panda_moveit_config)/launch/demo.launch">
+    <arg name="use_rviz" value="false"/>
+  </include>
+  <param name="move_group/capabilities" value="move_group/ExecuteTaskSolutionCapability" /> -->
+
+  <!-- Joint state controller -->
+  <!-- <rosparam file="$(find moveit_task_constructor_demo)/config/joint_state_controller.yaml" command="load" />
+  <node name="joint_state_controller_spawner" pkg="controller_manager" type="spawner" args="joint_state_controller" respawn="false" output="screen" /> -->
+
+  <!-- Joint trajectory controller -->
+  <!-- <rosparam file="$(find moveit_task_constructor_demo)/config/trajectory_controller.yaml" command="load" />
+  <node name="arms_trajectory_controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="panda_1_trajectory_controller panda_2_trajectory_controller hand_1_controller hand_2_controller" /> -->
+
+  <!-- Part from demo.launch -->
+  <!-- Run rviz with prepared config -->
+  <!-- <include file="$(find moveit_resources_dual_panda_moveit_config)/launch/moveit_rviz.launch">
+    <arg name="rviz_config" value="$(find moveit_task_constructor_demo)/config/mtc_dual.rviz" />
+  </include> -->
+
   <!-- Run MTC dual robot pick and place -->
-  <node name="mtc_tutorial" pkg="moveit_task_constructor_demo" type="dual_pickplace_demo" output="screen">
+  <node name="mtc_pickplace" pkg="moveit_task_constructor_demo" type="dual_pickplace_demo" output="screen">
     <param name="execute" value="true" />
     <rosparam command="load" file="$(find moveit_task_constructor_demo)/config/dual_panda_config.yaml" />
   </node>

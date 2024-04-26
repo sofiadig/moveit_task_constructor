@@ -365,7 +365,7 @@ Visualization Manager:
         Voxel Rendering: Occupied Voxels
       Show Trail: false
       State Display Time: REALTIME
-      Task Solution Topic: /mtc_tutorial/solution
+      Task Solution Topic: /mtc_pickplace/solution
       Tasks:
         {}
       Trail Step Size: 1

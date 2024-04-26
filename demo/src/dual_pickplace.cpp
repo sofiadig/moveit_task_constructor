@@ -185,20 +185,7 @@ bool Dual_Pickplace::init() {
 		});
 		t.add(std::move(applicability_filter));
 	}
-	/****************************************************
-	 *                                                  *
-	 *               Move arm    (trying out random)    *
-	 *                                                  *
-	 ***************************************************/
-	//Stage* initial_state_ptr = nullptr;
-	{  // Open Hand
-		// auto stage = std::make_unique<stages::MoveTo>("move arm to ready", sampling_planner);
-		// stage->setGroup(arm_1_group_name_);
-		// stage->setGoal(arm_1_home_pose_);
-		// //initial_state_ptr = stage.get();  // remember start state for monitoring grasp pose generator
-		// t.add(std::move(stage));
-	}
-
+	
 	/****************************************************
 	 *                                                  *
 	 *               Open Hand                          *

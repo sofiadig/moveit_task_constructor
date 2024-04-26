@@ -7,7 +7,7 @@
 constexpr char LOGNAME[] = "moveit_task_constructor_demo";
 
 int main(int argc, char** argv) {
-	ros::init(argc, argv, "mtc_tutorial");
+	ros::init(argc, argv, "mtc_pickplace");
 	ros::NodeHandle nh, pnh("~");
 
 	// Handle Task introspection requests from RViz & feedback during execution
