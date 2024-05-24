@@ -2,8 +2,9 @@
 max_solutions: 10
 
 # Planning group and link names
-arm_1_group_name: "panda_1"
-arm_2_group_name: "panda_2"
+dual_arm_group: "dual_arm"
+arm_1_group_name: "panda_1" #right arm
+arm_2_group_name: "panda_2" #left arm
 eef_1_name: "hand_1"
 eef_2_name: "hand_2"
 hand_1_group_name: "hand_1"
@@ -14,7 +15,12 @@ hand_2_frame: "panda_2_link8"
 # Poses
 hand_1_open_pose: "open"
 hand_1_close_pose: "close"
-arm_1_home_pose: "ready"
+arm_1_home_pose: "home"
+
+hand_2_open_pose: "open"
+hand_2_close_pose: "close"
+arm_2_home_pose: "home"
+
 
 # Scene frames
 world_frame: "world"
@@ -26,7 +32,7 @@ surface_link: "table"
 # CYLINDER object specifications
 object_name: "object"
 object_dimensions: [0.25, 0.02] # [height, radius]
-object_pose: [0.6, -0.5, 1.1, 0, 0, 0]
+object_pose: [0.6, 0.5, 1.1, 0, 0, 0]
 
 # Table model
 spawn_table: true
@@ -34,13 +40,13 @@ table_name: "table"
 table_dimensions: [0.4, 0.5, 0.1]  # [length, width, height]
 #table_dimensions: [0.4, 0.15]  # [length, radius]
 #table_pose: [0.5, -0.25, 0, 0, 0, 0]
-table_pose: [0.6, -0.5, 1.0, 0, 0, 0]
+table_pose: [0.6, 0.5, 1.0, 0, 0, 0]
 
 # Gripper grasp frame transform [x,y,z,r,p,y]
 grasp_frame_transform: [0, 0, 0.1, 1.571, 0.785, 1.571]
 
 # # Place pose [x,y,z,r,p,y]
-place_pose: [0.5, -0.4, 1.25, 0, 0, 0]
+place_pose: [0.5, 0.0, 1.25, 0, 0, 0]
 place_surface_offset: 0.0001 # place offset from table
 
 # Valid distance range when approaching an object for picking

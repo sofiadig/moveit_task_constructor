@@ -82,6 +82,9 @@ class Dual_Pickplace
 		std::string hand_1_open_pose_;
 		std::string hand_1_close_pose_;
 		std::string arm_1_home_pose_;
+		std::string hand_2_open_pose_;
+		std::string hand_2_close_pose_;
+		std::string arm_2_home_pose_;
 
 		// Pick metrics
 		Eigen::Isometry3d grasp_frame_transform_;
