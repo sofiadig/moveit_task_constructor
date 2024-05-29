@@ -73,7 +73,8 @@ class Dual_Pickplace
 		// object + surface
 		std::vector<std::string> support_surfaces_;
 		std::string object_reference_frame_;
-		std::string surface_link_;
+		std::string surface_1_link_;
+		std::string surface_2_link_;
 		std::string object_name_;
 		std::string world_frame_;
 		std::vector<double> object_dimensions_;

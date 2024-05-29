@@ -26,7 +26,8 @@ arm_2_home_pose: "home"
 world_frame: "world"
 table_reference_frame: "world"
 object_reference_frame: "world"
-surface_link: "table"
+surface_1_link: "table_1"
+surface_2_link: "table_2"
 
 # Collision object for picking
 # CYLINDER object specifications
