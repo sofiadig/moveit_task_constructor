@@ -162,6 +162,18 @@ bool Dual_Pickplace::init() {
 	t.setProperty("hand_grasping_frame", hand_1_frame_);
 	t.setProperty("ik_frame", hand_1_frame_);
 
+	// Central hold/ grasp pose
+	geometry_msgs::PoseStamped center_pose;
+	// Position
+	center_pose.header.frame_id = object_reference_frame_;
+	center_pose.pose.position.x = 0.5;
+	center_pose.pose.position.y = 0.0;
+	center_pose.pose.position.z = 1.5;
+	// Orientation
+	tf2::Quaternion orientation;
+	orientation.setRPY(M_PI/2, 0, 0);
+	center_pose.pose.orientation = tf2::toMsg(orientation);
+
 	/****************************************************
 	 *                                                  *
 	 *               Current State                      *
@@ -254,7 +266,7 @@ bool Dual_Pickplace::init() {
 
 			// Orientation
 			tf2::Quaternion orientation;
-			orientation.setRPY(0, 0, M_PI/4);
+			orientation.setRPY(0, 0, 0);
 			grasp_pose.pose.orientation = tf2::toMsg(orientation);
 			
 			// Add fixed pose as stage
@@ -305,7 +317,7 @@ bool Dual_Pickplace::init() {
 		}
 
 		/****************************************************
-  .... *               Allow collision (object support)   *
+  .... *               Allow collision (object support)     *
 		 ***************************************************/
 		{
 			auto stage = std::make_unique<stages::ModifyPlanningScene>("allow collision (object,support)");
@@ -314,7 +326,7 @@ bool Dual_Pickplace::init() {
 		}
 
 		/****************************************************
-  .... *               Lift object                        *
+  .... *               Lift object                          *
 		 ***************************************************/
 		{
 			auto stage = std::make_unique<stages::MoveRelative>("lift object", cartesian_planner);
@@ -333,7 +345,7 @@ bool Dual_Pickplace::init() {
 		}
 
 		/****************************************************
-  .... *               Forbid collision (object support)  *
+  .... *         Forbid collision (object support)          *
 		 ***************************************************/
 		{
 			auto stage = std::make_unique<stages::ModifyPlanningScene>("forbid collision (object,support)");
@@ -349,7 +361,7 @@ bool Dual_Pickplace::init() {
 
 	/******************************************************
 	 *                                                    *
-	 *          Move to Hold                             *
+	 *          Move to Hold                              *
 	 *                                                    *
 	 *****************************************************/
 	{
@@ -371,41 +383,14 @@ bool Dual_Pickplace::init() {
 		t.properties().exposeTo(hold->properties(), { "eef", "hand", "group" });
 		hold->properties().configureInitFrom(Stage::PARENT, { "eef", "hand", "group" });
 
-		/******************************************************
-  ---- *          Lower Object                              *
-		 *****************************************************/
-		{
-			auto stage = std::make_unique<stages::MoveRelative>("lower object", cartesian_planner);
-			stage->properties().set("marker_ns", "lower_object");
-			stage->properties().set("link", hand_1_frame_);
-			stage->properties().configureInitFrom(Stage::PARENT, { "group" });
-			stage->setMinMaxDistance(.03, .13);
-
-			// Set downward direction
-			geometry_msgs::Vector3Stamped vec;
-			vec.header.frame_id = world_frame_;
-			vec.vector.z = -1.0;
-			stage->setDirection(vec);
-			hold->insert(std::move(stage));
-		}
-
 		/****************************************************
   ---- *               Fixed Hold Pose       			     *
 		 ***************************************************/
 		{
 			// Create hold pose
 			geometry_msgs::PoseStamped hold_pose;
-			// Position
-			hold_pose.header.frame_id = object_reference_frame_;
-			hold_pose.pose.position.x = 0.5;
-			hold_pose.pose.position.y = 0.0;
-			hold_pose.pose.position.z = 1.2;
-			hold_pose.pose.position.y += 0.5 * object_dimensions_[0];
-
-			// Orientation
-			tf2::Quaternion orientation;
-			orientation.setRPY(M_PI/2, 0, 0);
-			hold_pose.pose.orientation = tf2::toMsg(orientation);
+			hold_pose = center_pose;
+			hold_pose.pose.position.y += 0.3 * object_dimensions_[0];
 			
 			// Add fixed pose as stage
 			auto stage = std::make_unique<stages::FixedCartesianPoses>("fixed hold pose");
@@ -481,17 +466,8 @@ bool Dual_Pickplace::init() {
 		{
 			// Create grasp pose
 			geometry_msgs::PoseStamped grasp_pose;
-			// Position
-			grasp_pose.header.frame_id = object_reference_frame_;
-			grasp_pose.pose.position.x = 0.5;
-			grasp_pose.pose.position.y = 0.0;
-			grasp_pose.pose.position.z = 1.2;
-			grasp_pose.pose.position.y -= 0.2 * object_dimensions_[0];
-
-			// Orientation
-			tf2::Quaternion orientation;
-			orientation.setRPY(M_PI/2, 0, 0);
-			grasp_pose.pose.orientation = tf2::toMsg(orientation);
+			grasp_pose = center_pose;
+			grasp_pose.pose.position.y -= 0.4 * object_dimensions_[0];
 			
 			// Add fixed pose as stage
 			auto stage = std::make_unique<stages::FixedCartesianPoses>("fixed grasp 2 pose");
@@ -588,7 +564,7 @@ bool Dual_Pickplace::init() {
 		t.add(std::move(takeover));
 	}
 
-	// ====================================Reset task properties for second part===================================
+	// =================doesnt seem to work:=========Reset task properties for second part===================================
 	// on left side in "": property names (dont change!) and on right side: value you want to give that property
 	// t.setProperty("group", arm_2_group_name_);
 	// t.setProperty("eef", eef_2_name_);
@@ -604,7 +580,6 @@ bool Dual_Pickplace::init() {
 	{
 		auto stage = std::make_unique<stages::Connect>("move hand_2 to place", stages::Connect::GroupPlannerVector{ 
 			{ arm_1_group_name_, sampling_planner }, { arm_2_group_name_, sampling_planner } });
-		// { arm_2_group_name_, sampling_planner } });
 		stage->setTimeout(5.0);
 		//stage->properties().configureInitFrom(Stage::PARENT);
 		stage->properties().set("group", arm_2_group_name_);
@@ -623,7 +598,6 @@ bool Dual_Pickplace::init() {
 	 *****************************************************/
 	{
 		auto place = std::make_unique<SerialContainer>("place object");
-		//t.properties().exposeTo(takeover->properties(), { "eef", "hand", "group", "ik_frame" });
 		place->properties().set("group", arm_2_group_name_);
 		place->properties().set("eef", eef_2_name_);
 		place->properties().set("hand", hand_2_group_name_);
@@ -637,9 +611,7 @@ bool Dual_Pickplace::init() {
 			auto stage = std::make_unique<stages::MoveRelative>("lower object", cartesian_planner);
 			stage->properties().set("marker_ns", "lower_object");
 			stage->properties().set("link", hand_2_frame_);
-			//stage->properties().configureInitFrom(Stage::PARENT, { "group" });
-			stage->properties().set("group", arm_2_group_name_);
-			//------------
+			stage->properties().configureInitFrom(Stage::PARENT, { "group" });
 			stage->setMinMaxDistance(.03, .13);
 
 			// Set downward direction
@@ -661,7 +633,7 @@ bool Dual_Pickplace::init() {
 			place_pose.pose.position.x = 0.6;
 			place_pose.pose.position.y = -0.5;
 			place_pose.pose.position.z = 1.1;
-			place_pose.pose.position.z += 1 * object_dimensions_[0] + place_surface_offset_;
+			place_pose.pose.position.z += 0.9 * object_dimensions_[0] + place_surface_offset_;
 
 			// Orientation
 			tf2::Quaternion orientation;
@@ -670,13 +642,7 @@ bool Dual_Pickplace::init() {
 			
 			// Add fixed pose as stage
 			auto stage = std::make_unique<stages::FixedCartesianPoses>("fixed place pose");
-			//stage->properties().configureInitFrom(Stage::PARENT);
-			stage->properties().set("group", arm_2_group_name_);
-			stage->properties().set("eef", eef_2_name_);
-			stage->properties().set("hand", hand_2_group_name_);
-			stage->properties().set("hand_grasping_frame", hand_2_frame_);
-			stage->properties().set("ik_frame", hand_2_frame_);
-			//------------
+			stage->properties().configureInitFrom(Stage::PARENT);
 			stage->properties().set("marker_ns", "place_pose");
 			stage->addPose(place_pose);
 			stage->setMonitoredStage(pick_2_stage_ptr);
@@ -686,10 +652,7 @@ bool Dual_Pickplace::init() {
 			wrapper->setMaxIKSolutions(8);
 			wrapper->setMinSolutionDistance(1.0);
 			wrapper->setIKFrame(grasp_frame_transform_, hand_2_frame_);
-			//wrapper->properties().configureInitFrom(Stage::PARENT, { "eef", "group" });
-			wrapper->setEndEffector(eef_2_name_);
-			wrapper->setGroup(arm_2_group_name_);
-			//------------
+			wrapper->properties().configureInitFrom(Stage::PARENT, { "eef", "group" });
 			wrapper->properties().configureInitFrom(Stage::INTERFACE, { "target_pose" });
 			place->insert(std::move(wrapper));
 		}
@@ -727,9 +690,7 @@ bool Dual_Pickplace::init() {
 		 *****************************************************/
 		{
 			auto stage = std::make_unique<stages::MoveRelative>("retreat after place", cartesian_planner);
-			//stage->properties().configureInitFrom(Stage::PARENT, { "group" });
-			stage->setGroup(arm_2_group_name_);
-			//------------
+			stage->properties().configureInitFrom(Stage::PARENT, { "group" });
 			stage->setMinMaxDistance(.12, .25);
 			stage->setIKFrame(hand_2_frame_);
 			stage->properties().set("marker_ns", "retreat");
@@ -750,7 +711,7 @@ bool Dual_Pickplace::init() {
 	 *                                                    *
 	 *****************************************************/
 	{
-		auto stage = std::make_unique<stages::MoveTo>("move home", sampling_planner);
+		auto stage = std::make_unique<stages::MoveTo>("move hand_1 home", sampling_planner);
 		//stage->properties().configureInitFrom(Stage::PARENT, { "group" });
 		stage->setGroup(arm_1_group_name_);
 		stage->setGoal(arm_1_home_pose_);
@@ -764,7 +725,7 @@ bool Dual_Pickplace::init() {
 	 *                                                    *
 	 *****************************************************/
 	{
-		auto stage = std::make_unique<stages::MoveTo>("move home", sampling_planner);
+		auto stage = std::make_unique<stages::MoveTo>("move hand_2 home", sampling_planner);
 		stage->setGroup(arm_2_group_name_);
 		stage->setGoal(arm_2_home_pose_);
 		stage->restrictDirection(stages::MoveTo::FORWARD);
