@@ -26,6 +26,7 @@ arm_2_home_pose: "home"
 world_frame: "world"
 table_reference_frame: "world"
 object_reference_frame: "world"
+obstacle_reference_frame: "world"
 surface_1_link: "table_1"
 surface_2_link: "table_2"
 
@@ -34,6 +35,19 @@ surface_2_link: "table_2"
 object_name: "object"
 object_dimensions: [0.25, 0.02] # [height, radius]
 object_pose: [0.6, 0.5, 1.1, 0, 0, 0]
+
+# Obstacle specifications
+obstacle_name: "obstacle"
+obstacle_dimensions_0: [0.05, 0.05, 0.5]
+obstacle_dimensions_1: [0.5, 0.05, 0.05]
+obstacle_dimensions_2: [0.03, 0.2, 0.03]
+obstacle_dimensions_3: [0.03, 0.03, 0.2]
+obstacle_dimensions_4: [0.05, 0.05, 0.15]
+obstacle_pose_0: [0.3, 0, 1.25, 0, 0, 0, 1]
+obstacle_pose_1: [0.4, 0, 1.2, 0, 0, 0, 1]
+obstacle_pose_2: [0.3, 0.125, 1.4, 0, 0, 0, 1]
+obstacle_pose_3: [0.3, 0.24, 1.485, 0, 0, 0, 1]
+obstacle_pose_4: [0.675, 0, 1.225, 0, 0, 0, 1]
 
 # Table model
 spawn_table: true

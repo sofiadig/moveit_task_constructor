@@ -13,7 +13,7 @@ void spawnObject(moveit::planning_interface::PlanningSceneInterface& psi, const 
 		throw std::runtime_error("Failed to spawn object: " + object.id);
 }
 
-moveit_msgs::CollisionObject createTable(const ros::NodeHandle& pnh, bool createTable_1) {
+moveit_msgs::CollisionObject createTable(const ros::NodeHandle& pnh, const bool& createTable_1) {
 	std::string table_name, table_reference_frame;
 	std::vector<double> table_dimensions;
 	geometry_msgs::Pose pose;
@@ -64,6 +64,45 @@ moveit_msgs::CollisionObject createObject(const ros::NodeHandle& pnh) {
 	return object;
 }
 
+moveit_msgs::CollisionObject createObstacle(const ros::NodeHandle& pnh) {
+	std::string obstacle_name, obstacle_reference_frame;
+	std::vector<double> obst_dim0, obst_dim1, obst_dim2, obst_dim3, obst_dim4;
+	geometry_msgs::Pose pose0, pose1, pose2, pose3, pose4;
+	std::size_t error = 0;
+	error += !rosparam_shortcuts::get(LOGNAME, pnh, "obstacle_name", obstacle_name);
+	error += !rosparam_shortcuts::get(LOGNAME, pnh, "obstacle_reference_frame", obstacle_reference_frame);
+	error += !rosparam_shortcuts::get(LOGNAME, pnh, "obstacle_dimensions_0", obst_dim0);
+	error += !rosparam_shortcuts::get(LOGNAME, pnh, "obstacle_dimensions_1", obst_dim1);
+	error += !rosparam_shortcuts::get(LOGNAME, pnh, "obstacle_dimensions_2", obst_dim2);
+	error += !rosparam_shortcuts::get(LOGNAME, pnh, "obstacle_dimensions_3", obst_dim3);
+	error += !rosparam_shortcuts::get(LOGNAME, pnh, "obstacle_dimensions_4", obst_dim4);
+	error += !rosparam_shortcuts::get(LOGNAME, pnh, "obstacle_pose_0", pose0);
+	error += !rosparam_shortcuts::get(LOGNAME, pnh, "obstacle_pose_1", pose1);
+	error += !rosparam_shortcuts::get(LOGNAME, pnh, "obstacle_pose_2", pose2);
+	error += !rosparam_shortcuts::get(LOGNAME, pnh, "obstacle_pose_3", pose3);
+	error += !rosparam_shortcuts::get(LOGNAME, pnh, "obstacle_pose_4", pose4);
+	rosparam_shortcuts::shutdownIfError(LOGNAME, error);
+
+	// Vectors for iteration in for-loop
+	std::vector<std::vector<double>> obstacle_dimensions = {obst_dim0, obst_dim1, obst_dim2, obst_dim3, obst_dim4};
+	std::vector<geometry_msgs::Pose> poses = {pose0, pose1, pose2, pose3, pose4};
+
+	// Create the obstacle
+	moveit_msgs::CollisionObject obstacle;
+	obstacle.id = obstacle_name;
+	obstacle.header.frame_id = obstacle_reference_frame;
+	std::size_t num_primitives = obstacle_dimensions.size();
+	obstacle.primitives.resize(num_primitives);
+
+	// Add the primitives to the obstacle
+	for (std::size_t i = 0; i < num_primitives; i++) {
+		obstacle.primitives[i].type = shape_msgs::SolidPrimitive::BOX;
+		obstacle.primitives[i].dimensions = obstacle_dimensions[i];
+		obstacle.primitive_poses.push_back(poses[i]);
+	}
+	return obstacle;
+}
+
 void setupDemoScene(ros::NodeHandle& pnh) {
 	// Add table and object to planning scene
 	ros::Duration(1.0).sleep();  // Wait for ApplyPlanningScene service
@@ -73,6 +112,7 @@ void setupDemoScene(ros::NodeHandle& pnh) {
 		spawnObject(psi, createTable(pnh, false));
 	}
 	spawnObject(psi, createObject(pnh));
+	spawnObject(psi, createObstacle(pnh));
 }
 
 Dual_Pickplace::Dual_Pickplace(const std::string& task_name, const ros::NodeHandle& pnh)
@@ -486,7 +526,7 @@ bool Dual_Pickplace::init() {
 			takeover->insert(std::move(wrapper));
 		}
 		/****************************************************
-  ---- *               Allow Collision (hand_2 object)        *
+  ---- *           Allow Collision (hand_2 object)          *
 		 ***************************************************/
 		{
 			auto stage = std::make_unique<stages::ModifyPlanningScene>("allow collision (hand_2, object)");
@@ -535,7 +575,7 @@ bool Dual_Pickplace::init() {
 		}
 
 		/****************************************************
-  .... *               Attach Object to hand_2              *
+  .... *           Attach Object to hand_2                  *
 		 ***************************************************/
 		{
 			auto stage = std::make_unique<stages::ModifyPlanningScene>("attach object to hand_2");
@@ -550,7 +590,7 @@ bool Dual_Pickplace::init() {
 			auto stage = std::make_unique<stages::MoveRelative>("retreat after takeover", cartesian_planner);
 			//stage->properties().configureInitFrom(Stage::PARENT, { "group" });
 			stage->setGroup(arm_1_group_name_);
-			stage->setMinMaxDistance(.12, .25);
+			stage->setMinMaxDistance(.04, .25);
 			stage->setIKFrame(hand_1_frame_);
 			stage->properties().set("marker_ns", "retreat");
 			geometry_msgs::Vector3Stamped vec;
