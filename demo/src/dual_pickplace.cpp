@@ -87,7 +87,7 @@ moveit_msgs::CollisionObject createObstacle(const ros::NodeHandle& pnh) {
 	std::vector<std::vector<double>> obstacle_dimensions = {obst_dim0, obst_dim1, obst_dim2, obst_dim3, obst_dim4};
 	std::vector<geometry_msgs::Pose> poses = {pose0, pose1, pose2, pose3, pose4};
 
-	// Create the obstacle
+	// Create the obstacle: name, frame, number of primitives
 	moveit_msgs::CollisionObject obstacle;
 	obstacle.id = obstacle_name;
 	obstacle.header.frame_id = obstacle_reference_frame;
@@ -174,6 +174,9 @@ void Dual_Pickplace::loadParameters() {
 bool Dual_Pickplace::init() {
 	ROS_INFO_NAMED(LOGNAME, "Sofia's Version: Initializing task pipeline");
 	const std::string object = object_name_;
+
+	// Set up line marker publisher
+	// ros::Publisher marker_pub = pnh.advertise<visualization_msgs::Marker>("visualization_marker", 10);
 
 	// Reset ROS introspection before constructing the new object
 	// TODO(v4hn): global storage for Introspection services to enable one-liner

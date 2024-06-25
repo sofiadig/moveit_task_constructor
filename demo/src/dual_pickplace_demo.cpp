@@ -6,6 +6,15 @@
 
 constexpr char LOGNAME[] = "moveit_task_constructor_demo";
 
+
+// void markerCallback(const visualization_msgs::Marker::ConstPtr& msg)
+// {
+//     ROS_INFO("Received a marker message:");
+//     ROS_INFO(" - ID: %d", msg->id);
+//     ROS_INFO(" - Type: %d", msg->type);
+//     ROS_INFO(" - Position: [%f, %f, %f]", msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
+// }
+
 int main(int argc, char** argv) {
 	ros::init(argc, argv, "mtc_pickplace");
 	ros::NodeHandle nh, pnh("~");

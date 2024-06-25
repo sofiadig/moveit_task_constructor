@@ -49,6 +49,12 @@ obstacle_pose_2: [0.3, 0.125, 1.4, 0, 0, 0, 1]
 obstacle_pose_3: [0.3, 0.24, 1.485, 0, 0, 0, 1]
 obstacle_pose_4: [0.675, 0, 1.225, 0, 0, 0, 1]
 
+# # DLO model
+# dlo_name: "dlo"
+# dlo_reference_frame: "world"
+
+marker_name: "line_marker"
+
 # Table model
 spawn_table: true
 table_1_name: "table_1"

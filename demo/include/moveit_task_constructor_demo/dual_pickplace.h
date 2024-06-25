@@ -27,6 +27,10 @@
 #include <moveit/task_constructor/solvers/pipeline_planner.h>
 #include <moveit_task_constructor_msgs/ExecuteTaskSolutionAction.h>
 
+// Marker
+#include <visualization_msgs/Marker.h>
+// #include <geometry_msgs/Point.h>
+
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <string>
 #include <map>
@@ -37,6 +41,7 @@ namespace moveit_task_constructor_demo {
 
 	// prepare a demo environment from ROS parameters under pnh
 void setupDemoScene(ros::NodeHandle& pnh);
+void setupLineMarker(ros::NodeHandle& pnh, ros::Publisher marker_pub);
 class Dual_Pickplace
 {
 	public:

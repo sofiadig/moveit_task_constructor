@@ -8,12 +8,14 @@ find_package(catkin REQUIRED COMPONENTS
 	moveit_ros_planning_interface
 	rosparam_shortcuts
 	urdf
+	moveit_visual_tools
+	visualization_msgs
 )
 
-# include_directories(
-#   include
-#   ${catkin_INCLUDE_DIRS}
-# )
+include_directories(
+  #include
+  ${catkin_INCLUDE_DIRS}
+)
 
 moveit_build_options()
 
@@ -76,13 +78,18 @@ demo(pick_place_demo_sofia)# Same porcedure as pick_place_demo
 target_link_libraries(${PROJECT_NAME}_pick_place_demo_sofia ${PROJECT_NAME}_pick_place_task_sofia)
 demo(dual_pickplace_demo)
 target_link_libraries(${PROJECT_NAME}_dual_pickplace_demo ${PROJECT_NAME}_dual_pickplace)
-
+#demo(line_tracking)
+#target_link_libraries(${PROJECT_NAME}_line_tracking ${PROJECT_NAME}_line_tracking)
 
 ## Dual_demo for file dual_with_main.cpp
 add_executable(dual_demo src/dual_with_main.cpp)
 target_link_libraries(dual_demo ${catkin_LIBRARIES})
 target_include_directories(dual_demo SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
 
+## Line_tracker for file line_tracking.cpp
+add_executable(line_tracker src/line_tracking.cpp)
+target_link_libraries(line_tracker ${catkin_LIBRARIES})
+target_include_directories(line_tracker SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
 
 install(DIRECTORY launch config
 	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
