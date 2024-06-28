@@ -33,6 +33,16 @@ Eigen::Isometry3d poseToIsometry(const geometry_msgs::Pose& pose_msg) {
     return isometry;
 }
 
+void setPose(geometry_msgs::Pose& pose, double px, double py, double pz, double ox, double oy, double oz, double ow) {
+    pose.position.x = px;
+    pose.position.y = py;
+    pose.position.z = pz;
+    pose.orientation.x = ox;
+    pose.orientation.y = oy;
+    pose.orientation.z = oz;
+    pose.orientation.w = ow;
+}
+
 int main(int argc, char** argv) {
 
     ros::init(argc, argv, "line_tracker");
@@ -61,35 +71,24 @@ int main(int argc, char** argv) {
     rviz_visual_tools::colors line_marker_color = rviz_visual_tools::colors::RED;
     rviz_visual_tools::scales line_marker_scale = rviz_visual_tools::scales::MEDIUM;
 
-    // Line marker starts from a certain point
-    std::vector<std::string> clip_names = {"clip7", "clip6", "clip9"};
+    //std::vector<std::string> bend_points = {"bend1", "bend2"};
 
-    std::string clip_name = clip_names[0];
-    std::map<std::string, geometry_msgs::Pose> clip_poses = psi.getObjectPoses(clip_names);
-    Eigen::Isometry3d line_start_pose = poseToIsometry(clip_poses[clip_name]);
+    geometry_msgs::Pose bend1; // On the base, between the robots
+    geometry_msgs::Pose bend2; // And edge of the obstacle
+
+    setPose(bend1, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    setPose(bend2, 0.315, 0.2385, 1.485, 0.0, 0.0, 0.0, 1.0);
+    
+    //std::map<std::string, geometry_msgs::Pose> bend_poses = { {"bend1", bend1}, {"bend2", bend2} };
+    Eigen::Isometry3d line_start_pose = poseToIsometry(bend1);
     line_starts.push_back(line_start_pose.translation());
-
-    clip_name = clip_names[1];
-    clip_poses = psi.getObjectPoses(clip_names);
-    Eigen::Isometry3d line_ends_pose = poseToIsometry(clip_poses[clip_name]);
+    Eigen::Isometry3d line_ends_pose = poseToIsometry(bend2);
     line_ends.push_back(line_ends_pose.translation());
 
-    clip_name = clip_names[1];
-    clip_poses = psi.getObjectPoses(clip_names);
-    line_start_pose = poseToIsometry(clip_poses[clip_name]);
-    // line_marker_start = line_start_pose.translation();
+    line_start_pose = poseToIsometry(bend2);
     line_starts.push_back(line_start_pose.translation());
-
     // place holder
     line_ends.push_back(line_start_pose.translation());
-
-    // // initialize
-    // robot_state::RobotStatePtr current_state = move_group_interface.getCurrentState();
-
-    // -------------------------------------------------------------
-
-    
-
 
 
 
@@ -115,7 +114,7 @@ int main(int argc, char** argv) {
 
         // bool publishing = visual_tools->publishLine(line_marker_start, line_marker_end, line_marker_color, line_marker_scale, 1);
         for (size_t i = 0; i < line_starts.size(); ++i) {
-            visual_tools->publishLine(line_starts[i], line_ends[i], line_marker_color, line_marker_scale); //, i); // Pass 'i' as the ID
+            visual_tools->publishLine(line_starts[i], line_ends[i], line_marker_color, line_marker_scale, i); // Pass 'i' as the ID
         }
         visual_tools->trigger();
 
