@@ -381,7 +381,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /interactive_robot_marray
+      Marker Topic: /mtc_dlo_handling/display_contacts
       Name: MarkerArray
       Namespaces:
         {}

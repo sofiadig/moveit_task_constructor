@@ -4,7 +4,7 @@
 
 namespace moveit_task_constructor_demo {
 
-// ros::Publisher* g_marker_array_publisher = nullptr;
+//g_marker_array_publisher = nullptr;
 // visualization_msgs::MarkerArray g_collision_points;
 
 
@@ -219,7 +219,7 @@ void publishMarkers(visualization_msgs::MarkerArray& markers)
     g_marker_array_publisher->publish(g_collision_points);
 }
 
-void computeCollisionContactPoints(planning_scene::PlanningScene& planning_scene) {
+void computeCollisionContactPoints(planning_scene::PlanningScenePtr& planning_scene) {
                                     //(robot_state::RobotStatePtr& robot, planning_scene::PlanningScene& planning_scene) 
   //std::map<std::string, moveit_msgs::CollisionObject> collision_objects = planning_scene_interface.getObjects();
 
@@ -228,7 +228,7 @@ void computeCollisionContactPoints(planning_scene::PlanningScene& planning_scene
   // We will create a collision request for the Panda robot
   collision_detection::CollisionRequest c_req;
   collision_detection::CollisionResult c_res;
-  c_req.group_name = "dual_arm";
+  //c_req.group_name = "dual_arm";
   c_req.contacts = true;
   c_req.max_contacts = 100;
   c_req.max_contacts_per_pair = 5;
@@ -237,7 +237,7 @@ void computeCollisionContactPoints(planning_scene::PlanningScene& planning_scene
   // Checking for Collisions
   // ^^^^^^^^^^^^^^^^^^^^^^^
   // We check for collisions between robot and itself or the world.
-  planning_scene.checkCollision(c_req, c_res);//, *robot);
+  planning_scene->checkCollision(c_req, c_res);//, *robot);
 
   // Displaying Collision Contact Points
   // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -315,23 +315,30 @@ int main(int argc, char** argv) {
 
 
     // ================== Planning Scene ======================
-    // Load the robot model
-    robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
-    robot_model::RobotModelPtr robot_model = robot_model_loader.getModel();
+    // // Load the robot model
+    //robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+    //robot_model::RobotModelPtr robot_model = robot_model_loader.getModel();
+
+    // Create a planning scene monitor
+    planning_scene_monitor::PlanningSceneMonitorPtr planning_scene_monitor =
+        std::make_shared<planning_scene_monitor::PlanningSceneMonitor>("robot_description");
+    planning_scene_monitor->startSceneMonitor();
+    planning_scene_monitor->startWorldGeometryMonitor();
+    planning_scene_monitor->startStateMonitor();
 
     // Create a PlanningScene
-    planning_scene::PlanningScene planning_scene(robot_model);
+    planning_scene::PlanningScenePtr planning_scene = planning_scene_monitor->getPlanningScene();
     // Update Planning Scene and check for collisons
-    if (moveit_task_constructor_demo::updatePlanningScene(planning_scene, nh)) {
+    //if (moveit_task_constructor_demo::updatePlanningScene(planning_scene, nh)) {
         // Now you can use the planning_scene object as needed
-        collision_detection::CollisionRequest collision_request;
-        collision_detection::CollisionResult collision_result;
-        planning_scene.checkCollision(collision_request, collision_result);
+    collision_detection::CollisionRequest collision_request;
+    collision_detection::CollisionResult collision_result;
+    planning_scene->checkCollision(collision_request, collision_result, *current_state);
 
-        if (collision_result.collision){ ROS_INFO("Collision detected!"); }
-        else { ROS_INFO("No collision detected."); }
-    }
-    else { ROS_ERROR("Failed to call service get_planning_scene");}
+    if (collision_result.collision){ ROS_INFO("Collision detected!"); }
+    else { ROS_INFO("No collision detected."); }
+    //}
+    //else { ROS_ERROR("Failed to call service get_planning_scene");}
     // ========================================================
 
 
@@ -341,8 +348,11 @@ int main(int argc, char** argv) {
     //allowCollisions("panda_1_hand", collision_object.id);
 
     while (ros::ok()) {
-        // Get the current state of the robot
+        collision_result.clear();  // Clear previous results
+
+        // Get the current state of the robot & current planning scene
         robot_state::RobotStatePtr current_state = move_group_interface.getCurrentState();
+        planning_scene = planning_scene_monitor->getPlanningScene();
 
         const Eigen::Isometry3d& gripper_tip_iso = current_state->getGlobalLinkTransform("panda_1_hand") * tip_pose_in_hand_frame;
         geometry_msgs::PoseStamped gripper_tip_pose = moveit_task_constructor_demo::isometryToPoseStamped(gripper_tip_iso, "world");
@@ -350,20 +360,23 @@ int main(int argc, char** argv) {
         // Update the dynamic object
         moveit_task_constructor_demo::updateObject(gripper_tip_pose, dynamic_object, psi);
         
-        // Update Planning Scene and check for collisions
-        if (moveit_task_constructor_demo::updatePlanningScene(planning_scene, nh)) {
+        // ====================================== Check for collisions =================================================
+        
+        //if (moveit_task_constructor_demo::updatePlanningScene(planning_scene, nh)) {
 
-            moveit_task_constructor_demo::computeCollisionContactPoints(planning_scene);
+        moveit_task_constructor_demo::computeCollisionContactPoints(planning_scene);
 
-            // // Now you can use the planning_scene object as needed
-            // collision_detection::CollisionRequest collision_request;
-            // collision_detection::CollisionResult collision_result;
-            // planning_scene.checkCollision(collision_request, collision_result);
+            // Now you can use the planning_scene object as needed
+            //collision_detection::CollisionRequest collision_request;
+            //collision_detection::CollisionResult collision_result;
+            planning_scene->checkCollision(collision_request, collision_result, *current_state);
 
             // if (collision_result.collision){ ROS_INFO("Collision detected!"); }
             // else { ROS_INFO("No collision detected."); }
-        }
-        else { ROS_ERROR("Failed to call service get_planning_scene");}
+        //}
+        //else { ROS_ERROR("Failed to call service get_planning_scene");}
+
+        // =============================================================================================================
 
         ros::Duration(0.1).sleep();
     }

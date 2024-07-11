@@ -11,6 +11,7 @@
 #include <moveit/robot_state/robot_state.h>
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/collision_detection/collision_tools.h>
+#include <moveit/collision_detection/collision_common.h>
 // MTC
 #include <moveit/task_constructor/task.h>
 
@@ -23,7 +24,7 @@ namespace moveit_task_constructor_demo {
 // {
     // ObjectTracker();
     // ~ObjectTracker() = default;
-    ros::Publisher* g_marker_array_publisher = nulltpr;
+    ros::Publisher* g_marker_array_publisher;
     visualization_msgs::MarkerArray g_collision_points;
 
 
