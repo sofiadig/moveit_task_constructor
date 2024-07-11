@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Custom rosconsole.config to switch between logging levels [INFO] and [DEBUG] -->
+  <env name="ROSCONSOLE_CONFIG_FILE"
+    value="$(find moveit_task_constructor_demo)/config/custom_rosconsole.config"/>
+
+  <!-- Run MTC DLO Handling -->
+  <node name="mtc_dlo_handling" pkg="moveit_task_constructor_demo" type="dlo_handling_demo" output="screen">
+    <param name="execute" value="true" />
+    <rosparam command="load" file="$(find moveit_task_constructor_demo)/config/dual_panda_config.yaml" />
+  </node>
+
+</launch>

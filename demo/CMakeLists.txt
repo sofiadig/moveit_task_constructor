@@ -40,6 +40,7 @@ endfunction()
 # until here
 pickplace(pick_place_task_sofia)
 pickplace(dual_pickplace)
+pickplace(dlo_handling)
 
 add_library(${PROJECT_NAME}_pick_place_task src/pick_place_task.cpp)
 target_link_libraries(${PROJECT_NAME}_pick_place_task ${catkin_LIBRARIES})
@@ -78,8 +79,8 @@ demo(pick_place_demo_sofia)# Same porcedure as pick_place_demo
 target_link_libraries(${PROJECT_NAME}_pick_place_demo_sofia ${PROJECT_NAME}_pick_place_task_sofia)
 demo(dual_pickplace_demo)
 target_link_libraries(${PROJECT_NAME}_dual_pickplace_demo ${PROJECT_NAME}_dual_pickplace)
-#demo(line_tracking)
-#target_link_libraries(${PROJECT_NAME}_line_tracking ${PROJECT_NAME}_line_tracking)
+demo(dlo_handling_demo)
+target_link_libraries(${PROJECT_NAME}_dlo_handling_demo ${PROJECT_NAME}_dlo_handling)
 
 ## Dual_demo for file dual_with_main.cpp
 add_executable(dual_demo src/dual_with_main.cpp)
@@ -90,6 +91,11 @@ target_include_directories(dual_demo SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
 add_executable(line_tracker src/line_tracking.cpp)
 target_link_libraries(line_tracker ${catkin_LIBRARIES})
 target_include_directories(line_tracker SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
+
+## Object_tracker for file line_object_tracking.cpp
+add_executable(object_tracker src/line_object_tracking.cpp)
+target_link_libraries(object_tracker ${catkin_LIBRARIES})
+target_include_directories(object_tracker SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
 
 install(DIRECTORY launch config
 	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}

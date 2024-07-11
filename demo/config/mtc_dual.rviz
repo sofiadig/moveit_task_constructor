@@ -33,12 +33,9 @@ Panels:
       solutions_splitter:
         - 362
         - 152
-      solutions_view_columns:
-        - 57
-        - 69
-        - 57
+      solutions_view_columns: ~
       tasks_view_columns:
-        - 175
+        - 189
         - 57
         - 57
         - 57
@@ -226,8 +223,6 @@ Visualization Manager:
       Markers:
         All at once?: false
         Value: true
-        approach_object: true
-        lift_object: true
       Name: Motion Planning Tasks
       Robot:
         Fixed Robot Color: 150; 50; 150
@@ -379,9 +374,9 @@ Visualization Manager:
         Voxel Rendering: Occupied Voxels
       Show Trail: false
       State Display Time: REALTIME
-      Task Solution Topic: /mtc_pickplace/solution
+      Task Solution Topic: /mtc_dlo_handling/solution
       Tasks:
-        dual_pickplace: 12
+        {}
       Trail Step Size: 1
       Value: true
     - Class: rviz/MarkerArray
@@ -389,7 +384,7 @@ Visualization Manager:
       Marker Topic: /interactive_robot_marray
       Name: MarkerArray
       Namespaces:
-        Line: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -416,9 +411,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.18777692317962646
-        Y: -0.1999351531267166
-        Z: -0.03872866928577423
+        X: 0.11734555661678314
+        Y: -0.2702330946922302
+        Z: 0.24055202305316925
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -426,7 +421,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 0.2497970163822174
       Target Frame: panda_1_link0
-      Yaw: 0.011738551780581474
+      Yaw: 0.006738551892340183
     Saved: ~
 Window Geometry:
   Displays:
