@@ -219,7 +219,7 @@ void publishMarkers(visualization_msgs::MarkerArray& markers)
     g_marker_array_publisher->publish(g_collision_points);
 }
 
-void computeCollisionContactPoints(planning_scene::PlanningScenePtr& planning_scene) {
+void computeCollisionContactPoints(planning_scene::PlanningScenePtr& planning_scene, moveit_msgs::CollisionObject& object) {
                                     //(robot_state::RobotStatePtr& robot, planning_scene::PlanningScene& planning_scene) 
   //std::map<std::string, moveit_msgs::CollisionObject> collision_objects = planning_scene_interface.getObjects();
 
@@ -237,19 +237,16 @@ void computeCollisionContactPoints(planning_scene::PlanningScenePtr& planning_sc
   // Checking for Collisions
   // ^^^^^^^^^^^^^^^^^^^^^^^
   // We check for collisions between robot and itself or the world.
-  planning_scene->checkCollision(c_req, c_res);//, *robot);
+
+
+  //UNCOMMENT HERE!!!!!!!!!!!!!!!!!!!!!!!!!!planning_scene->checkCollision(c_req, c_res, object);//, *robot);
 
   // Displaying Collision Contact Points
   // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  // If there are collisions, we get the contact points and display them as markers.
-  // **getCollisionMarkersFromContacts()** is a helper function that adds the
-  // collision contact points into a MarkerArray message. If you want to use
-  // the contact points for something other than displaying them you can
-  // iterate through **c_res.contacts** which is a std::map of contact points.
-  // Look at the implementation of getCollisionMarkersFromContacts() in
-  // `collision_tools.cpp
-  // <https://github.com/ros-planning/moveit/blob/noetic-devel/moveit_core/collision_detection/src/collision_tools.cpp>`_
-  // for how.
+  // If there are collisions, we get the contact points and display them as markers. **getCollisionMarkersFromContacts()** is a helper function that adds the
+  // collision contact points into a MarkerArray message. If you want to use the contact points for something other than displaying them you can
+  // iterate through **c_res.contacts** which is a std::map of contact points. Look at the implementation of getCollisionMarkersFromContacts() in `collision_tools.cpp
+  // <https://github.com/ros-planning/moveit/blob/noetic-devel/moveit_core/collision_detection/src/collision_tools.cpp>`_ for how.
   if (c_res.collision)
   {
     ROS_INFO_STREAM("COLLIDING contact_point_count: " << c_res.contact_count);
@@ -281,6 +278,29 @@ void computeCollisionContactPoints(planning_scene::PlanningScenePtr& planning_sc
 }
 }
 
+void broadcastTransform(const geometry_msgs::Pose& pose, const std::string& parent_frame_id, const std::string& child_frame_id) {
+    tf2_ros::TransformBroadcaster br;
+    geometry_msgs::TransformStamped transformStamped;
+
+    transformStamped.header.stamp = ros::Time::now();
+    transformStamped.header.frame_id = parent_frame_id;
+    transformStamped.child_frame_id = child_frame_id;
+
+    // Set translation from the pose
+    transformStamped.transform.translation.x = pose.position.x;
+    transformStamped.transform.translation.y = pose.position.y;
+    transformStamped.transform.translation.z = pose.position.z;
+
+    // Set rotation from the pose
+    transformStamped.transform.rotation.x = pose.orientation.x;
+    transformStamped.transform.rotation.y = pose.orientation.y;
+    transformStamped.transform.rotation.z = pose.orientation.z;
+    transformStamped.transform.rotation.w = pose.orientation.w;
+
+    // Broadcast the transform
+    br.sendTransform(transformStamped);
+}
+
 int main(int argc, char** argv) {
     ros::init(argc, argv, "dynamic_object_tracker");
     ros::NodeHandle nh;
@@ -292,11 +312,13 @@ int main(int argc, char** argv) {
     moveit::planning_interface::MoveGroupInterface move_group_interface("dual_arm");
 
 
+
     // ########### Initialize object & its position ###########
     // Create a new object
     moveit_msgs::CollisionObject dynamic_object;
     dynamic_object.id = "dynamic_object";
     dynamic_object.header.frame_id = "world";
+    std::string dynamic_object_frame_id = "dynamic_object_frame";
 
     // Get the current state of the robot
     robot_state::RobotStatePtr current_state = move_group_interface.getCurrentState();
@@ -333,7 +355,7 @@ int main(int argc, char** argv) {
         // Now you can use the planning_scene object as needed
     collision_detection::CollisionRequest collision_request;
     collision_detection::CollisionResult collision_result;
-    planning_scene->checkCollision(collision_request, collision_result, *current_state);
+    //UNCOMMENT HERE!!!!!!!!!!!!!!!!!!!!!!!!!!planning_scene->checkCollision(collision_request, collision_result, dynamic_object);
 
     if (collision_result.collision){ ROS_INFO("Collision detected!"); }
     else { ROS_INFO("No collision detected."); }
@@ -343,9 +365,7 @@ int main(int argc, char** argv) {
 
 
 
-
-    moveit_task_constructor_demo::computeCollisionContactPoints(planning_scene);
-    //allowCollisions("panda_1_hand", collision_object.id);
+    moveit_task_constructor_demo::computeCollisionContactPoints(planning_scene, dynamic_object);
 
     while (ros::ok()) {
         collision_result.clear();  // Clear previous results
@@ -359,17 +379,20 @@ int main(int argc, char** argv) {
 
         // Update the dynamic object
         moveit_task_constructor_demo::updateObject(gripper_tip_pose, dynamic_object, psi);
+        // Broadcast the transform of object frame to world frame
+        broadcastTransform(dynamic_object.pose, "world", dynamic_object_frame_id);
+
         
         // ====================================== Check for collisions =================================================
         
         //if (moveit_task_constructor_demo::updatePlanningScene(planning_scene, nh)) {
 
-        moveit_task_constructor_demo::computeCollisionContactPoints(planning_scene);
+        moveit_task_constructor_demo::computeCollisionContactPoints(planning_scene, dynamic_object);
 
             // Now you can use the planning_scene object as needed
             //collision_detection::CollisionRequest collision_request;
             //collision_detection::CollisionResult collision_result;
-            planning_scene->checkCollision(collision_request, collision_result, *current_state);
+            //planning_scene->checkCollision(collision_request, collision_result, dynamic_object);
 
             // if (collision_result.collision){ ROS_INFO("Collision detected!"); }
             // else { ROS_INFO("No collision detected."); }

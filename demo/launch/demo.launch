@@ -3,6 +3,10 @@
   <!-- Load panda demo with MTC's execution capability -->
   <!-- /home/kifabrik/ws_moveit/src/moveit_resources/panda_moveit_config/launch/moveit_rviz.launch -->
 
+  <!-- Custom rosconsole.config to switch between logging levels [INFO] and [DEBUG] -->
+  <env name="ROSCONSOLE_CONFIG_FILE"
+    value="$(find moveit_task_constructor_demo)/config/custom_rosconsole.config"/>
+
   <include file="$(find moveit_resources_dual_panda_moveit_config)/launch/demo.launch">
     <arg name="use_rviz" value="false"/>
   </include>

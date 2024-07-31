@@ -6,6 +6,9 @@
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit_msgs/AllowedCollisionMatrix.h>
 #include <moveit_msgs/GetPlanningScene.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf2_ros/transform_listener.h>
 // MoveIt
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>

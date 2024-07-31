@@ -306,6 +306,16 @@ bool Dlo_Handling::init() {
 	}
 
 	/****************************************************
+    *               Attach Object                        *
+	***************************************************/
+	{
+		auto stage = std::make_unique<stages::ModifyPlanningScene>("attach object");
+		stage->attachObject(dlo, hand_1_frame_);
+		t.add(std::move(stage));
+		//grasp->insert(std::move(stage));
+	}
+
+	/****************************************************
 	 *                                                  *
 	 *               Move up                            *
 	 *                                                  *
