@@ -305,32 +305,32 @@ bool Dlo_Handling::init() {
 		t.add(std::move(stage));
 	}
 
-	/****************************************************
-    *               Attach Object                        *
-	***************************************************/
-	{
-		auto stage = std::make_unique<stages::ModifyPlanningScene>("attach object");
-		stage->attachObject(dlo, hand_1_frame_);
-		t.add(std::move(stage));
-		//grasp->insert(std::move(stage));
-	}
+	// /****************************************************
+    // *               Attach Object                        *
+	// ***************************************************/
+	// {
+	// 	auto stage = std::make_unique<stages::ModifyPlanningScene>("attach object");
+	// 	stage->attachObject(dlo, hand_1_frame_);
+	// 	t.add(std::move(stage));
+	// 	//grasp->insert(std::move(stage));
+	// }
 
 	/****************************************************
 	 *                                                  *
-	 *               Move up                            *
+	 *               Move forward                       *
 	 *                                                  *
 	 ***************************************************/
 	{
-		auto stage = std::make_unique<stages::MoveRelative>("move up", cartesian_planner);
+		auto stage = std::make_unique<stages::MoveRelative>("move forward", cartesian_planner);
 		stage->properties().configureInitFrom(Stage::PARENT, { "group" });
 		//stage->setGroup(arm_1_group_name_);
-		stage->setMinMaxDistance(.02, .9);
+		stage->setMinMaxDistance(.2, 1.5);
 		stage->setIKFrame(hand_1_frame_);
 		stage->properties().set("marker_ns", "retreat");
 		geometry_msgs::Vector3Stamped vec;
 		vec.header.frame_id = world_frame_;
 		vec.vector.x = 1.0;
-		vec.vector.y = -0.2;
+		vec.vector.y = -1.0;
 		stage->setDirection(vec);
 		t.add(std::move(stage));
 	}

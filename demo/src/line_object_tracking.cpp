@@ -7,9 +7,11 @@ namespace moveit_task_constructor_demo {
 //g_marker_array_publisher = nullptr;
 // visualization_msgs::MarkerArray g_collision_points;
 
+ObjectTracker::ObjectTracker() {
+        // Constructor implementation
+}
 
-
-void allowCollisions(const std::string& link_name, const std::string& object_id) {
+void ObjectTracker::allowCollisions(const std::string& link_name, const std::string& object_id) {
     // Initialize the PlanningSceneMonitor
     planning_scene_monitor::PlanningSceneMonitorPtr planning_scene_monitor(
         new planning_scene_monitor::PlanningSceneMonitor("robot_description"));
@@ -39,7 +41,7 @@ void allowCollisions(const std::string& link_name, const std::string& object_id)
     planning_scene_monitor->triggerSceneUpdateEvent(planning_scene_monitor::PlanningSceneMonitor::UPDATE_SCENE);
 }
 
-void initObject(const geometry_msgs::PoseStamped& gripper_pose, moveit_msgs::CollisionObject& collision_object, moveit::planning_interface::PlanningSceneInterface& planning_scene_interface) {
+void ObjectTracker::initObject(const geometry_msgs::PoseStamped& gripper_pose, moveit_msgs::CollisionObject& collision_object, moveit::planning_interface::PlanningSceneInterface& planning_scene_interface) {
     // Define the start point (e.g., robot base)
     geometry_msgs::Point start_point;
     start_point.x = 0.0;
@@ -88,7 +90,7 @@ void initObject(const geometry_msgs::PoseStamped& gripper_pose, moveit_msgs::Col
     planning_scene_interface.applyCollisionObject(collision_object);
 }
 
-void updateObject(const geometry_msgs::PoseStamped& gripper_pose, moveit_msgs::CollisionObject& collision_object, moveit::planning_interface::PlanningSceneInterface& planning_scene_interface) {
+void ObjectTracker::updateObject(const geometry_msgs::PoseStamped& gripper_pose, moveit_msgs::CollisionObject& collision_object, moveit::planning_interface::PlanningSceneInterface& planning_scene_interface) {
     // Define the start point (e.g., robot base)
     geometry_msgs::Point start_point;
     start_point.x = 0.0;
@@ -141,7 +143,7 @@ void updateObject(const geometry_msgs::PoseStamped& gripper_pose, moveit_msgs::C
 
 
 // Function to convert Eigen::Isometry3d to geometry_msgs::Pose
-geometry_msgs::Pose isometryToPose(const Eigen::Isometry3d& transform) {
+geometry_msgs::Pose ObjectTracker::isometryToPose(const Eigen::Isometry3d& transform) {
     geometry_msgs::Pose pose;
     // From other way round 
     //isometry.translation() << pose_msg.position.x, pose_msg.position.y, pose_msg.position.z;
@@ -165,7 +167,7 @@ geometry_msgs::Pose isometryToPose(const Eigen::Isometry3d& transform) {
 }
 
 // Function to convert Eigen::Isometry3d to geometry_msgs::PoseStamped
-geometry_msgs::PoseStamped isometryToPoseStamped(const Eigen::Isometry3d& transform, const std::string& frame_id) {
+geometry_msgs::PoseStamped ObjectTracker::isometryToPoseStamped(const Eigen::Isometry3d& transform, const std::string& frame_id) {
     geometry_msgs::PoseStamped pose_stamped;
     pose_stamped.header.frame_id = frame_id;
     pose_stamped.header.stamp = ros::Time::now();
@@ -174,7 +176,7 @@ geometry_msgs::PoseStamped isometryToPoseStamped(const Eigen::Isometry3d& transf
     return pose_stamped;
 }
 
-bool updatePlanningScene(planning_scene::PlanningScene& planning_scene, ros::NodeHandle& nh) {
+bool ObjectTracker::updatePlanningScene(planning_scene::PlanningScene& planning_scene, ros::NodeHandle& nh) {
     // Create a service client to get the planning scene
     ros::ServiceClient planning_scene_service_client = nh.serviceClient<moveit_msgs::GetPlanningScene>("get_planning_scene");
     planning_scene_service_client.waitForExistence();
@@ -200,7 +202,7 @@ bool updatePlanningScene(planning_scene::PlanningScene& planning_scene, ros::Nod
     }
 }
 
-void publishMarkers(visualization_msgs::MarkerArray& markers)
+void ObjectTracker::publishMarkers(visualization_msgs::MarkerArray& markers)
 {
   // delete old markers
   if (!g_collision_points.markers.empty())
@@ -219,13 +221,10 @@ void publishMarkers(visualization_msgs::MarkerArray& markers)
     g_marker_array_publisher->publish(g_collision_points);
 }
 
-void computeCollisionContactPoints(planning_scene::PlanningScenePtr& planning_scene, moveit_msgs::CollisionObject& object) {
-                                    //(robot_state::RobotStatePtr& robot, planning_scene::PlanningScene& planning_scene) 
-  //std::map<std::string, moveit_msgs::CollisionObject> collision_objects = planning_scene_interface.getObjects();
+void ObjectTracker::computeCollisionContactPoints(planning_scene::PlanningScenePtr& planning_scene,
+                                                moveit_msgs::CollisionObject& object,
+                                                const geometry_msgs::TransformStamped& transformStamped) {
 
-  // Collision Requests
-  // ^^^^^^^^^^^^^^^^^^
-  // We will create a collision request for the Panda robot
   collision_detection::CollisionRequest c_req;
   collision_detection::CollisionResult c_res;
   //c_req.group_name = "dual_arm";
@@ -234,15 +233,10 @@ void computeCollisionContactPoints(planning_scene::PlanningScenePtr& planning_sc
   c_req.max_contacts_per_pair = 5;
   c_req.verbose = false;
 
-  // Checking for Collisions
-  // ^^^^^^^^^^^^^^^^^^^^^^^
-  // We check for collisions between robot and itself or the world.
+  // ------------------ Checking for Collisions ------------------
+  planning_scene->checkCollision(c_req, c_res, object, transformStamped);//, *robot);
 
-
-  //UNCOMMENT HERE!!!!!!!!!!!!!!!!!!!!!!!!!!planning_scene->checkCollision(c_req, c_res, object);//, *robot);
-
-  // Displaying Collision Contact Points
-  // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  // ------------ Displaying Collision Contact Points ------------
   // If there are collisions, we get the contact points and display them as markers. **getCollisionMarkersFromContacts()** is a helper function that adds the
   // collision contact points into a MarkerArray message. If you want to use the contact points for something other than displaying them you can
   // iterate through **c_res.contacts** which is a std::map of contact points. Look at the implementation of getCollisionMarkersFromContacts() in `collision_tools.cpp
@@ -276,11 +270,10 @@ void computeCollisionContactPoints(planning_scene::PlanningScenePtr& planning_sc
     publishMarkers(empty_marker_array);
   }
 }
-}
 
-void broadcastTransform(const geometry_msgs::Pose& pose, const std::string& parent_frame_id, const std::string& child_frame_id) {
-    tf2_ros::TransformBroadcaster br;
-    geometry_msgs::TransformStamped transformStamped;
+
+void ObjectTracker::updateTransform(const geometry_msgs::Pose& pose, const std::string& parent_frame_id, const std::string& child_frame_id,
+                                    geometry_msgs::TransformStamped& transformStamped) {
 
     transformStamped.header.stamp = ros::Time::now();
     transformStamped.header.frame_id = parent_frame_id;
@@ -291,14 +284,23 @@ void broadcastTransform(const geometry_msgs::Pose& pose, const std::string& pare
     transformStamped.transform.translation.y = pose.position.y;
     transformStamped.transform.translation.z = pose.position.z;
 
-    // Set rotation from the pose
-    transformStamped.transform.rotation.x = pose.orientation.x;
-    transformStamped.transform.rotation.y = pose.orientation.y;
-    transformStamped.transform.rotation.z = pose.orientation.z;
-    transformStamped.transform.rotation.w = pose.orientation.w;
+    // Set tf2 quaternion from given pose
+    tf2::Quaternion quat(
+        pose.orientation.x,
+        pose.orientation.y,
+        pose.orientation.z,
+        pose.orientation.w
+    );
+    // Apply quaternion to transform rotation
+    transformStamped.transform.rotation.x = quat.x();
+    transformStamped.transform.rotation.y = quat.y();
+    transformStamped.transform.rotation.z = quat.z();
+    transformStamped.transform.rotation.w = quat.w();
 
     // Broadcast the transform
-    br.sendTransform(transformStamped);
+    //br.sendTransform(transformStamped);
+}
+
 }
 
 int main(int argc, char** argv) {
@@ -310,15 +312,22 @@ int main(int argc, char** argv) {
     // Set up MoveIt interfaces
     moveit::planning_interface::PlanningSceneInterface psi;
     moveit::planning_interface::MoveGroupInterface move_group_interface("dual_arm");
+    moveit_task_constructor_demo::ObjectTracker* objectTracker = new moveit_task_constructor_demo::ObjectTracker();
+    geometry_msgs::TransformStamped transformStamped;
+
+
+    // tf2_ros::TransformBroadcaster br;
+    // tf2_ros::Buffer tf_buffer_;
+    // tf2_ros::TransformListener tf_listener_(tf_buffer_);
 
 
 
-    // ########### Initialize object & its position ###########
+// ##################################### Initialize object & its position ############################################
     // Create a new object
     moveit_msgs::CollisionObject dynamic_object;
     dynamic_object.id = "dynamic_object";
     dynamic_object.header.frame_id = "world";
-    std::string dynamic_object_frame_id = "dynamic_object_frame";
+    //std::string dynamic_object_frame_id = "dynamic_object_frame";
 
     // Get the current state of the robot
     robot_state::RobotStatePtr current_state = move_group_interface.getCurrentState();
@@ -327,16 +336,15 @@ int main(int argc, char** argv) {
     Eigen::Isometry3d tip_pose_in_hand_frame = Eigen::Isometry3d::Identity();
     tip_pose_in_hand_frame.translation().z() = 0.1034; // Franka TCP configuration
     const Eigen::Isometry3d& gripper_tip_iso = current_state->getGlobalLinkTransform("panda_1_hand") * tip_pose_in_hand_frame;
-    geometry_msgs::PoseStamped gripper_tip_pose = moveit_task_constructor_demo::isometryToPoseStamped(gripper_tip_iso, "world");
+    geometry_msgs::PoseStamped gripper_tip_pose = objectTracker->isometryToPoseStamped(gripper_tip_iso, "world");
 
-    moveit_task_constructor_demo::initObject(gripper_tip_pose, dynamic_object, psi);
-    // #########################################################
-
-
-
+    objectTracker->initObject(gripper_tip_pose, dynamic_object, psi);
+    objectTracker->updateTransform(dynamic_object.pose, "world", "dynamic_object_frame", transformStamped);
+// #####################################################################################################################
 
 
-    // ================== Planning Scene ======================
+
+// ===================================== Planning Scene ======================================================
     // // Load the robot model
     //robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
     //robot_model::RobotModelPtr robot_model = robot_model_loader.getModel();
@@ -353,41 +361,44 @@ int main(int argc, char** argv) {
     // Update Planning Scene and check for collisons
     //if (moveit_task_constructor_demo::updatePlanningScene(planning_scene, nh)) {
         // Now you can use the planning_scene object as needed
-    collision_detection::CollisionRequest collision_request;
-    collision_detection::CollisionResult collision_result;
-    //UNCOMMENT HERE!!!!!!!!!!!!!!!!!!!!!!!!!!planning_scene->checkCollision(collision_request, collision_result, dynamic_object);
 
-    if (collision_result.collision){ ROS_INFO("Collision detected!"); }
-    else { ROS_INFO("No collision detected."); }
-    //}
-    //else { ROS_ERROR("Failed to call service get_planning_scene");}
-    // ========================================================
+    // ============================================================
 
+    // // Pre check for collision
+    // collision_detection::CollisionRequest collision_request;
+    // collision_detection::CollisionResult collision_result;
+    // planning_scene->checkCollision(collision_request, collision_result, dynamic_object);
 
+    // if (collision_result.collision){ ROS_INFO("Collision detected!"); }
+    // else { ROS_INFO("No collision detected."); }
 
-    moveit_task_constructor_demo::computeCollisionContactPoints(planning_scene, dynamic_object);
+// ===========================================================================================================
+
+    // First collision check
+    objectTracker->computeCollisionContactPoints(planning_scene, dynamic_object, transformStamped);
+
 
     while (ros::ok()) {
-        collision_result.clear();  // Clear previous results
+        //collision_result.clear();  // Clear previous results
 
         // Get the current state of the robot & current planning scene
         robot_state::RobotStatePtr current_state = move_group_interface.getCurrentState();
         planning_scene = planning_scene_monitor->getPlanningScene();
 
         const Eigen::Isometry3d& gripper_tip_iso = current_state->getGlobalLinkTransform("panda_1_hand") * tip_pose_in_hand_frame;
-        geometry_msgs::PoseStamped gripper_tip_pose = moveit_task_constructor_demo::isometryToPoseStamped(gripper_tip_iso, "world");
+        geometry_msgs::PoseStamped gripper_tip_pose = objectTracker->isometryToPoseStamped(gripper_tip_iso, "world");
 
         // Update the dynamic object
-        moveit_task_constructor_demo::updateObject(gripper_tip_pose, dynamic_object, psi);
+        objectTracker->updateObject(gripper_tip_pose, dynamic_object, psi);
         // Broadcast the transform of object frame to world frame
-        broadcastTransform(dynamic_object.pose, "world", dynamic_object_frame_id);
+        objectTracker->updateTransform(dynamic_object.pose, "world", "dynamic_object_frame", transformStamped);
 
         
         // ====================================== Check for collisions =================================================
         
         //if (moveit_task_constructor_demo::updatePlanningScene(planning_scene, nh)) {
 
-        moveit_task_constructor_demo::computeCollisionContactPoints(planning_scene, dynamic_object);
+        objectTracker->computeCollisionContactPoints(planning_scene, dynamic_object, transformStamped);
 
             // Now you can use the planning_scene object as needed
             //collision_detection::CollisionRequest collision_request;

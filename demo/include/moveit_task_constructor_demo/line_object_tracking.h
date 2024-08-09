@@ -8,6 +8,7 @@
 #include <moveit_msgs/GetPlanningScene.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_listener.h>
 // MoveIt
 #include <moveit/robot_model/robot_model.h>
@@ -23,10 +24,11 @@ namespace moveit_task_constructor_demo {
 	using namespace moveit::task_constructor;
 
 
-// class ObjectTracker
-// {
-    // ObjectTracker();
-    // ~ObjectTracker() = default;
+class ObjectTracker
+{
+public:
+    ObjectTracker();
+    ~ObjectTracker() = default;
     ros::Publisher* g_marker_array_publisher;
     visualization_msgs::MarkerArray g_collision_points;
 
@@ -40,8 +42,11 @@ namespace moveit_task_constructor_demo {
     geometry_msgs::PoseStamped isometryToPoseStamped(const Eigen::Isometry3d& transform, const std::string& frame_id);
     bool updatePlanningScene(planning_scene::PlanningScene& planning_scene, ros::NodeHandle& nh);
     void publishMarkers(visualization_msgs::MarkerArray& markers);
-    void computeCollisionContactPoints(robot_state::RobotStatePtr& robot, planning_scene::PlanningScene& planning_scene);
+    void computeCollisionContactPoints(planning_scene::PlanningScenePtr& planning_scene, moveit_msgs::CollisionObject& object,
+                                       const geometry_msgs::TransformStamped& transformStamped);
+    void updateTransform(const geometry_msgs::Pose& pose, const std::string& parent_frame_id, const std::string& child_frame_id,
+                        geometry_msgs::TransformStamped& transformStamped);
 
 
-// }
+};
 }
