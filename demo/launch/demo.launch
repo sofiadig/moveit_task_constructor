@@ -13,7 +13,9 @@
   <param name="move_group/capabilities" value="move_group/ExecuteTaskSolutionCapability" />
 
   <!-- Run rviz with prepared config -->
+  <!-- For dual pickplace use: mtc_dual_pickplace.rviz -->
+  <!-- For dlo handling use: mtc_dual_dloh.rviz -->
   <include file="$(find moveit_resources_dual_panda_moveit_config)/launch/moveit_rviz.launch">
-    <arg name="rviz_config" value="$(find moveit_task_constructor_demo)/config/mtc_dual.rviz" />
+    <arg name="rviz_config" value="$(find moveit_task_constructor_demo)/config/mtc_dual_dloh.rviz" />
   </include>
 </launch>

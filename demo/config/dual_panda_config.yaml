@@ -40,8 +40,8 @@ object_pose: [0.6, 0.5, 1.1, 0, 0, 0]
 
 # Simple Obstacle
 simple_obst_name: "pillar"
-simple_obst_dimensions: [0.05, 0.05, 0.5]
-simple_obst_pose: [0.3, 0.3, 1.2, 0, 0, 0]
+simple_obst_dimensions: [0.1, 0.1, 0.3]
+simple_obst_pose: [0.5, 0.3, 1.2, 0, 0, 0]
 
 # Obstacle specifications
 obstacle_name: "obstacle"
@@ -63,7 +63,7 @@ dlo_reference_frame: "world"
 marker_name: "line_marker"
 
 # Table model
-spawn_table: false
+spawn_table: true
 table_1_name: "table_1"
 table_1_dimensions: [0.4, 0.5, 0.1]  # [length, width, height]
 table_1_pose: [0.6, 0.5, 1.0, 0, 0, 0]

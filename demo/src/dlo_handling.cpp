@@ -214,6 +214,18 @@ bool Dlo_Handling::init() {
 	t.stages()->setName(task_name_);
 	t.loadRobotModel();
 
+	/****************************************************
+	 *                                                  *
+	 *      Allow Collision (hand_1,dlo) & (hand_2,dlo) *
+	 *                                                  *
+	 ***************************************************/
+	{
+		auto stage = std::make_unique<stages::ModifyPlanningScene>("allow collision (hand_1,dlo)");
+		stage->allowCollisions({dlo}, t.getRobotModel()->getJointModelGroup(hand_1_group_name_)->getLinkModelNamesWithCollisionGeometry(), true);
+		stage->allowCollisions({dlo}, t.getRobotModel()->getJointModelGroup(hand_2_group_name_)->getLinkModelNamesWithCollisionGeometry(), true);
+		t.add(std::move(stage));
+	}
+
 	// Sampling planner
 	auto sampling_planner = std::make_shared<solvers::PipelinePlanner>();
 	sampling_planner->setProperty("goal_joint_tolerance", 1e-5);
@@ -305,9 +317,9 @@ bool Dlo_Handling::init() {
 		t.add(std::move(stage));
 	}
 
-	// /****************************************************
-    // *               Attach Object                        *
-	// ***************************************************/
+	/****************************************************
+    *               Attach Object                        *
+	***************************************************/
 	// {
 	// 	auto stage = std::make_unique<stages::ModifyPlanningScene>("attach object");
 	// 	stage->attachObject(dlo, hand_1_frame_);

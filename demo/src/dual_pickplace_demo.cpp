@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
 	ros::AsyncSpinner spinner(1);
 	spinner.start();
 
-	//moveit_task_constructor_demo::setupDemoScene(pnh);
+	moveit_task_constructor_demo::setupDemoScene(pnh);
 
 	// Construct and run pick/place task
 	moveit_task_constructor_demo::Dual_Pickplace dual_pickplace("dual_pickplace", pnh);

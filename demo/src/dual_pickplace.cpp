@@ -112,7 +112,7 @@ void setupDemoScene(ros::NodeHandle& pnh) {
 		spawnObject(psi, createTable(pnh, false));
 	}
 	spawnObject(psi, createObject(pnh));
-	//spawnObject(psi, createObstacle(pnh));
+	spawnObject(psi, createObstacle(pnh));
 }
 
 Dual_Pickplace::Dual_Pickplace(const std::string& task_name, const ros::NodeHandle& pnh)
