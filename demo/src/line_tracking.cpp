@@ -91,7 +91,9 @@ int main(int argc, char** argv) {
     line_ends.push_back(line_start_pose.translation());
 
 
-
+    // Get the global transform of a specific link with respect to the world frame
+    Eigen::Isometry3d tip_pose_in_hand = Eigen::Isometry3d::Identity();
+    tip_pose_in_hand.translation().z() = 0.1034; // Franka TCP configuration
     // -------------------------------------------------------------
     
     // Main loop to continuously update the line marker
@@ -99,12 +101,15 @@ int main(int argc, char** argv) {
         // Get the current state of the robot
         robot_state::RobotStatePtr current_state = move_group_interface.getCurrentState();
 
-        // Get the global transform of a specific link with respect to the world frame
-        Eigen::Isometry3d tip_pose_in_hand = Eigen::Isometry3d::Identity();
-        tip_pose_in_hand.translation().z() = 0.1034; // Franka TCP configuration
-        const Eigen::Isometry3d& gripper_tip_pose = current_state->getGlobalLinkTransform("panda_1_hand") * tip_pose_in_hand;
+        const Eigen::Isometry3d& gripper_1_tip_pose = current_state->getGlobalLinkTransform("panda_1_hand") * tip_pose_in_hand;
         // line_marker_end = gripper_tip_pose.translation();
-        line_ends[1] = gripper_tip_pose.translation();
+        line_ends[0] = gripper_1_tip_pose.translation();
+
+        const Eigen::Isometry3d& gripper_2_tip_pose = current_state->getGlobalLinkTransform("panda_2_hand") * tip_pose_in_hand;
+        // // line_marker_end = gripper_tip_pose.translation();
+        line_starts[0] = gripper_2_tip_pose.translation();
+        //line_ends[0] = gripper_2_tip_pose.translation();
+
 
         // Extract the position components
         // gripper_tip_position = gripper_tip_pose.translation();

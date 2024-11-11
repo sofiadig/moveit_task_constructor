@@ -15,7 +15,8 @@
   <!-- Run rviz with prepared config -->
   <!-- For dual pickplace use: mtc_dual_pickplace.rviz -->
   <!-- For dlo handling use: mtc_dual_dloh.rviz -->
+  <!-- For line tracking and dloh use: mtc_dual_linem.rviz -->
   <include file="$(find moveit_resources_dual_panda_moveit_config)/launch/moveit_rviz.launch">
-    <arg name="rviz_config" value="$(find moveit_task_constructor_demo)/config/mtc_dual_dloh.rviz" />
+    <arg name="rviz_config" value="$(find moveit_task_constructor_demo)/config/mtc_dual_linem.rviz" />
   </include>
 </launch>
