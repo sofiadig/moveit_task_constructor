@@ -112,5 +112,6 @@ class Dlo_Handling
 		// Place metrics
 		geometry_msgs::Pose place_pose_;
 		double place_surface_offset_;
+		geometry_msgs::Pose up_pose_;
 };
 }

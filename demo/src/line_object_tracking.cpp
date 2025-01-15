@@ -349,13 +349,11 @@ int main(int argc, char** argv) {
 
     // Use tip of hand instead of hand base
     Eigen::Isometry3d tip_pose_in_hand_frame = Eigen::Isometry3d::Identity();
-    tip_pose_in_hand_frame.translation().z() = 0.1534; // Franka TCP configuration // original: 0.1034
+    tip_pose_in_hand_frame.translation().z() = 0.116; // Franka TCP configuration // original: 0.1034
     const Eigen::Isometry3d& gripper_tip_iso = current_state->getGlobalLinkTransform("panda_1_hand") * tip_pose_in_hand_frame;
     geometry_msgs::PoseStamped gripper_tip_pose = objectTracker->isometryToPoseStamped(gripper_tip_iso, "world");
 
-    Eigen::Isometry3d tip_pose_2_in_hand_frame = Eigen::Isometry3d::Identity();
-    tip_pose_2_in_hand_frame.translation().z() = 0.1534; // Franka TCP configuration // original: 0.1034
-    const Eigen::Isometry3d& gripper_tip_2_iso = current_state->getGlobalLinkTransform("panda_2_hand") * tip_pose_2_in_hand_frame;
+    const Eigen::Isometry3d& gripper_tip_2_iso = current_state->getGlobalLinkTransform("panda_2_hand") * tip_pose_in_hand_frame;
     geometry_msgs::PoseStamped gripper_tip_2_pose = objectTracker->isometryToPoseStamped(gripper_tip_2_iso, "world");
 
     objectTracker->initObject(gripper_tip_pose, gripper_tip_2_pose, dynamic_object, psi);
@@ -397,6 +395,8 @@ int main(int argc, char** argv) {
 
         const Eigen::Isometry3d& gripper_tip_iso = current_state->getGlobalLinkTransform("panda_1_hand") * tip_pose_in_hand_frame;
         geometry_msgs::PoseStamped gripper_tip_pose = objectTracker->isometryToPoseStamped(gripper_tip_iso, "world");
+        const Eigen::Isometry3d& gripper_tip_2_iso = current_state->getGlobalLinkTransform("panda_2_hand") * tip_pose_in_hand_frame;
+        geometry_msgs::PoseStamped gripper_tip_2_pose = objectTracker->isometryToPoseStamped(gripper_tip_2_iso, "world");
 
         // Update the dynamic object
         objectTracker->updateObject(gripper_tip_pose, gripper_tip_2_pose, dynamic_object, psi);
