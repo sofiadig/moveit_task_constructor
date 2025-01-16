@@ -1,4 +1,6 @@
-#include </home/kifabrik/ws_moveit/src/moveit_task_constructor/demo/include/moveit_task_constructor_demo/line_object_tracking.h>
+#include </home/sdg/ws_moveit/src/moveit_task_constructor/demo/include/moveit_task_constructor_demo/line_object_tracking.h>
+// Path: /home/sdg/ws_moveit/src/moveit_task_constructor/demo/include/moveit_task_constructor_demo/line_object_tracking.h
+// Relative Path: src/moveit_task_constructor/demo/include/moveit_task_constructor_demo/line_object_tracking.h
 //  /home/kifabrik/ws_moveit/src/moveit_task_constructor/demo/include/moveit_task_constructor_demo/line_object_tracking.h
 
 

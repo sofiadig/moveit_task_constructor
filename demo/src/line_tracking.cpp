@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
 
         // bool publishing = visual_tools->publishLine(line_marker_start, line_marker_end, line_marker_color, line_marker_scale, 1);
         for (size_t i = 0; i < line_starts.size(); ++i) {
-            visual_tools->publishLine(line_starts[i], line_ends[i], line_marker_color, line_marker_scale, i); // Pass 'i' as the ID
+            visual_tools->publishLine(line_starts[i], line_ends[i], line_marker_color, line_marker_scale);//, i); // Pass 'i' as the ID
         }
         visual_tools->trigger();
 
