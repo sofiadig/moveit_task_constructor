@@ -41,6 +41,7 @@ endfunction()
 pickplace(pick_place_task_sofia)
 pickplace(dual_pickplace)
 pickplace(dlo_handling)
+pickplace(dlo_collision_handling)
 
 add_library(${PROJECT_NAME}_pick_place_task src/pick_place_task.cpp)
 target_link_libraries(${PROJECT_NAME}_pick_place_task ${catkin_LIBRARIES})
@@ -81,6 +82,8 @@ demo(dual_pickplace_demo)
 target_link_libraries(${PROJECT_NAME}_dual_pickplace_demo ${PROJECT_NAME}_dual_pickplace)
 demo(dlo_handling_demo)
 target_link_libraries(${PROJECT_NAME}_dlo_handling_demo ${PROJECT_NAME}_dlo_handling)
+demo(dlo_collision_handling_demo)
+target_link_libraries(${PROJECT_NAME}_dlo_collision_handling_demo ${PROJECT_NAME}_dlo_collision_handling)
 
 ## Dual_demo for file dual_with_main.cpp
 add_executable(dual_demo src/dual_with_main.cpp)

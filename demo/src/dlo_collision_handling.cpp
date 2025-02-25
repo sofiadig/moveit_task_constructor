@@ -1,4 +1,4 @@
-#include <moveit_task_constructor_demo/dlo_handling.h>
+#include <moveit_task_constructor_demo/dlo_collision_handling.h>
 #include <rosparam_shortcuts/rosparam_shortcuts.h>
 // TF2
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -6,7 +6,7 @@
 namespace moveit_task_constructor_demo {
 
 constexpr char LOGNAME[] = "moveit_task_constructor_demo";
-constexpr char Dlo_Handling::LOGNAME[];
+constexpr char Dlo_Collision_Handling::LOGNAME[];
 
 void spawnObject(moveit::planning_interface::PlanningSceneInterface& psi, const moveit_msgs::CollisionObject& object) {
 	if (!psi.applyCollisionObject(object))
@@ -139,12 +139,12 @@ void setupDemoScene(ros::NodeHandle& pnh) {
 	// spawnObject(psi, createObstacle(pnh));
 }
 
-Dlo_Handling::Dlo_Handling(const std::string& task_name, const ros::NodeHandle& pnh)
+Dlo_Collision_Handling::Dlo_Collision_Handling(const std::string& task_name, const ros::NodeHandle& pnh)
   : pnh_(pnh), task_name_(task_name) {
 	loadParameters();
 }
 
-void Dlo_Handling::loadParameters() {
+void Dlo_Collision_Handling::loadParameters() {
 	/****************************************************
 	 *                                                  *
 	 *               Load Parameters                    *
@@ -202,7 +202,7 @@ void Dlo_Handling::loadParameters() {
 	rosparam_shortcuts::shutdownIfError(LOGNAME, errors);
 }
 
-bool Dlo_Handling::init() {
+bool Dlo_Collision_Handling::init() {
 	ROS_INFO_NAMED(LOGNAME, "Sofia's Version: Initializing task pipeline");
 	const std::string dlo = dlo_name_;
 
@@ -504,7 +504,7 @@ bool Dlo_Handling::init() {
 	return true;
 }
 
-bool Dlo_Handling::plan() {
+bool Dlo_Collision_Handling::plan() {
 	ROS_INFO_NAMED(LOGNAME, "Start searching for task solutions");
 	int max_solutions = pnh_.param<int>("max_solutions", 10);
 	ROS_INFO_NAMED(LOGNAME, "Max_solutions for planning are set.");
@@ -512,7 +512,7 @@ bool Dlo_Handling::plan() {
 	return static_cast<bool>(task_->plan(max_solutions));
 }
 
-bool Dlo_Handling::execute() {
+bool Dlo_Collision_Handling::execute() {
 	ROS_INFO_NAMED(LOGNAME, "Executing solution trajectory");
 	moveit_msgs::MoveItErrorCodes execute_result;
 
