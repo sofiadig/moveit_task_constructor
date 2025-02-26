@@ -13,29 +13,6 @@ ObjectTracker::ObjectTracker() {
         // Constructor implementation
 }
 
-// void ObjectTracker::allowCollisions(const std::string& link_name, const std::string& object_id) {
-//     // Initialize the PlanningSceneMonitor
-//     planning_scene_monitor::PlanningSceneMonitorPtr planning_scene_monitor(
-//         new planning_scene_monitor::PlanningSceneMonitor("robot_description"));
-//     // Wait for the PlanningScene to be updated
-//     planning_scene_monitor->requestPlanningSceneState("/get_planning_scene");
-//     ros::Duration(0.1).sleep();
-//     // Lock the scene for reading
-//     planning_scene_monitor::LockedPlanningSceneRW planning_scene(planning_scene_monitor);
-//     // Get the current planning scene
-//     planning_scene::PlanningScenePtr scene = planning_scene->diff();
-//     // Access the ACM
-//     collision_detection::AllowedCollisionMatrix& acm = scene->getAllowedCollisionMatrixNonConst();
-//     // Allow collision between the specified link and object
-//     acm.setEntry(link_name, object_id, true);
-//     // Create a PlanningScene message
-//     moveit_msgs::PlanningScene planning_scene_msg;
-//     scene->getPlanningSceneDiffMsg(planning_scene_msg);
-//     // Publish the modified planning scene
-//     planning_scene_monitor->getPlanningScene()->setPlanningSceneDiffMsg(planning_scene_msg);
-//     planning_scene_monitor->triggerSceneUpdateEvent(planning_scene_monitor::PlanningSceneMonitor::UPDATE_SCENE);
-// }
-
 void ObjectTracker::initObject(const geometry_msgs::PoseStamped& gripper_pose,
                                 const geometry_msgs::PoseStamped& gripper_2_pose,
                                 moveit_msgs::CollisionObject& collision_object,
@@ -93,9 +70,6 @@ void ObjectTracker::updateObject(const geometry_msgs::PoseStamped& gripper_pose,
                                     moveit::planning_interface::PlanningSceneInterface& planning_scene_interface) {
     // Define the start point (e.g., robot base)
     geometry_msgs::Point start_point = gripper_2_pose.pose.position;
-    // start_point.x = 0.0;
-    // start_point.y = 0.0;
-    // start_point.z = 1.1;
 
     // Define the end point as the gripper position
     geometry_msgs::Point end_point = gripper_pose.pose.position;
@@ -173,30 +147,6 @@ geometry_msgs::PoseStamped ObjectTracker::isometryToPoseStamped(const Eigen::Iso
     return pose_stamped;
 }
 
-// bool ObjectTracker::updatePlanningScene(planning_scene::PlanningScene& planning_scene, ros::NodeHandle& nh) {
-//     // Create a service client to get the planning scene
-//     ros::ServiceClient planning_scene_service_client = nh.serviceClient<moveit_msgs::GetPlanningScene>("get_planning_scene");
-//     planning_scene_service_client.waitForExistence();
-//     // Create a request for the complete planning scene
-//     moveit_msgs::GetPlanningScene srv;
-//     srv.request.components.components = moveit_msgs::PlanningSceneComponents::SCENE_SETTINGS | moveit_msgs::PlanningSceneComponents::ROBOT_STATE | moveit_msgs::PlanningSceneComponents::ROBOT_STATE_ATTACHED_OBJECTS |
-//                                         moveit_msgs::PlanningSceneComponents::WORLD_OBJECT_NAMES | moveit_msgs::PlanningSceneComponents::WORLD_OBJECT_GEOMETRY | moveit_msgs::PlanningSceneComponents::OCTOMAP |
-//                                         moveit_msgs::PlanningSceneComponents::TRANSFORMS | moveit_msgs::PlanningSceneComponents::ALLOWED_COLLISION_MATRIX | moveit_msgs::PlanningSceneComponents::LINK_PADDING_AND_SCALING |
-//                                         moveit_msgs::PlanningSceneComponents::TRANSFORMS | moveit_msgs::PlanningSceneComponents::ALLOWED_COLLISION_MATRIX | moveit_msgs::PlanningSceneComponents::LINK_PADDING_AND_SCALING |
-//                                         moveit_msgs::PlanningSceneComponents::TRANSFORMS | moveit_msgs::PlanningSceneComponents::ALLOWED_COLLISION_MATRIX | moveit_msgs::PlanningSceneComponents::LINK_PADDING_AND_SCALING |
-//                                         moveit_msgs::PlanningSceneComponents::OBJECT_COLORS;
-//     // Call the service to get the planning scene
-//     if (planning_scene_service_client.call(srv)) {
-//         // Update the PlanningScene object with the retrieved planning scene message
-//         planning_scene.usePlanningSceneMsg(srv.response.scene);
-//         return true;
-//     }
-//     else {
-//         ROS_ERROR("Failed to call service get_planning_scene");
-//         return false;
-//     }
-// }
-
 void ObjectTracker::publishMarkers(visualization_msgs::MarkerArray& markers)
 {
   // delete old markers
@@ -218,7 +168,7 @@ void ObjectTracker::publishMarkers(visualization_msgs::MarkerArray& markers)
 
 void ObjectTracker::computeCollisionContactPoints(planning_scene::PlanningScenePtr& planning_scene,
                                                 moveit_msgs::CollisionObject& object,
-                                                const geometry_msgs::TransformStamped& transformStamped,
+                                                //const geometry_msgs::TransformStamped& transformStamped,
                                                 robot_state::RobotStatePtr& robot) {
 
   collision_detection::CollisionRequest c_req;
@@ -259,7 +209,7 @@ void ObjectTracker::computeCollisionContactPoints(planning_scene::PlanningSceneP
   // END_SUB_TUTORIAL
   else
   {
-    // ROS_INFO("Not colliding"); <<<<<<<<<<<<<<<<<---------------------------------UNCOMMENT HERE------------------------------------------------------------------------
+    ROS_INFO("Not colliding");// <<<<<<<<<<<<<<<<<---------------------------------UNCOMMENT HERE------------------------------------------------------------------------
 
     // delete the old collision point markers
     visualization_msgs::MarkerArray empty_marker_array;
@@ -295,29 +245,6 @@ void ObjectTracker::updateTransform(const geometry_msgs::Pose& pose, const std::
 
     // Broadcast the transform
     //br.sendTransform(transformStamped);
-}
-
-// Function to attach an object
-void ObjectTracker::attachObject(moveit::planning_interface::PlanningSceneInterface& planning_scene_interface,
-                  const std::string& object_id, const std::string& link_name) {
-    moveit_msgs::AttachedCollisionObject attached_object;
-    attached_object.link_name = link_name;
-    attached_object.object.id = object_id;
-    attached_object.object.operation = moveit_msgs::CollisionObject::ADD;
-
-    // Optionally specify touch links (links that can touch the object without causing collisions)
-    attached_object.touch_links = std::vector<std::string>{link_name};
-
-    planning_scene_interface.applyAttachedCollisionObject(attached_object);
-}
-
-void ObjectTracker::detachObject(moveit::planning_interface::PlanningSceneInterface& planning_scene_interface,
-                  const std::string& object_id) {
-    moveit_msgs::AttachedCollisionObject detach_object;
-    detach_object.object.id = object_id;
-    detach_object.object.operation = moveit_msgs::CollisionObject::REMOVE;
-
-    planning_scene_interface.applyAttachedCollisionObject(detach_object);
 }
 
 }
@@ -380,16 +307,13 @@ int main(int argc, char** argv) {
         // Now you can use the planning_scene object as needed
 
 // ===========================================================================================================
-    // Temporarily attach the object to the robot
-    //objectTracker->attachObject(psi, dynamic_object.id, "panda_1_hand");
+
     // First collision check
-    objectTracker->computeCollisionContactPoints(planning_scene, dynamic_object, transformStamped, current_state);
+    objectTracker->computeCollisionContactPoints(planning_scene, dynamic_object, current_state);
 
 
     while (ros::ok()) {
         //collision_result.clear();  // Clear previous results
-        // Detach object from robot
-        //objectTracker->detachObject(psi, dynamic_object.id);
 
         // Get the current state of the robot & current planning scene
         robot_state::RobotStatePtr current_state = move_group_interface.getCurrentState();
@@ -403,7 +327,7 @@ int main(int argc, char** argv) {
         // Update the dynamic object
         objectTracker->updateObject(gripper_tip_pose, gripper_tip_2_pose, dynamic_object, psi);
         // Broadcast the transform of object frame to world frame
-        objectTracker->updateTransform(dynamic_object.primitive_poses[0], "world", "dynamic_object_frame", transformStamped);
+        //objectTracker->updateTransform(dynamic_object.primitive_poses[0], "world", "dynamic_object_frame", transformStamped);
         // ROS_INFO_STREAM("Transform: Translation (" << transformStamped.transform.translation.x << ", "
         //                                             << transformStamped.transform.translation.y << ", "
         //                                             << transformStamped.transform.translation.z << ")");
@@ -417,17 +341,9 @@ int main(int argc, char** argv) {
         // ====================================== Check for collisions =================================================
         
         //if (moveit_task_constructor_demo::updatePlanningScene(planning_scene, nh)) {
-        
-        // Temporarily attach the object to the robot
-        //objectTracker->attachObject(psi, dynamic_object.id, "panda_1_hand");
 
         // Check collision for attached object
-        objectTracker->computeCollisionContactPoints(planning_scene, dynamic_object, transformStamped, current_state);
-
-        // Detach object from robot
-        //objectTracker->detachObject(psi, dynamic_object.id);
-
-
+        objectTracker->computeCollisionContactPoints(planning_scene, dynamic_object, current_state);
 
         // Now you can use the planning_scene object as needed
         // collision_detection::CollisionRequest collision_request;
