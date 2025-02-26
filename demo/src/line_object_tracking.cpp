@@ -381,7 +381,7 @@ int main(int argc, char** argv) {
 
 // ===========================================================================================================
     // Temporarily attach the object to the robot
-    objectTracker->attachObject(psi, dynamic_object.id, "panda_1_hand");
+    //objectTracker->attachObject(psi, dynamic_object.id, "panda_1_hand");
     // First collision check
     objectTracker->computeCollisionContactPoints(planning_scene, dynamic_object, transformStamped, current_state);
 
@@ -389,7 +389,7 @@ int main(int argc, char** argv) {
     while (ros::ok()) {
         //collision_result.clear();  // Clear previous results
         // Detach object from robot
-        objectTracker->detachObject(psi, dynamic_object.id);
+        //objectTracker->detachObject(psi, dynamic_object.id);
 
         // Get the current state of the robot & current planning scene
         robot_state::RobotStatePtr current_state = move_group_interface.getCurrentState();

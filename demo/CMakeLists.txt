@@ -100,6 +100,11 @@ add_executable(object_tracker src/line_object_tracking.cpp)
 target_link_libraries(object_tracker ${catkin_LIBRARIES})
 target_include_directories(object_tracker SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
 
+## Line_collision_tracker for file line_collision_tracking.cpp
+add_executable(line_collision_tracker src/line_collision_tracking.cpp)
+target_link_libraries(line_collision_tracker ${catkin_LIBRARIES})
+target_include_directories(line_collision_tracker SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
+
 install(DIRECTORY launch config
 	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
