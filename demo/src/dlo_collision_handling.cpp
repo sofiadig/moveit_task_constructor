@@ -134,7 +134,7 @@ void setupDemoScene(ros::NodeHandle& pnh) {
 		spawnObject(psi, createTable(pnh, false));
 	}
 	
-	spawnObject(psi, createSimpleObst(pnh));
+	//spawnObject(psi, createSimpleObst(pnh));
 	// spawnObject(psi, createObject(pnh));
 	// spawnObject(psi, createObstacle(pnh));
 }
