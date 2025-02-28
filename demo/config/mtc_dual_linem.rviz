@@ -393,7 +393,7 @@ Visualization Manager:
       Marker Topic: /interactive_robot_marray
       Name: MarkerArray
       Namespaces:
-        Line: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/TF
@@ -546,5 +546,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1607
-  X: 192
-  Y: 123
+  X: 187
+  Y: 181

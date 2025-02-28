@@ -116,6 +116,39 @@ void ObjectTracker::updateObject(const geometry_msgs::PoseStamped& gripper_pose,
     planning_scene_interface.applyCollisionObject(collision_object);
 }
 
+void ObjectTracker::createPillarObject(moveit_msgs::CollisionObject& object,
+                                      moveit::planning_interface::PlanningSceneInterface& planning_scene_interface) {
+	  ROS_INFO_STREAM("We are in the createPillarObject function.");
+    geometry_msgs::Pose pose;
+    //moveit_msgs::CollisionObject object;
+    object.id = "pillar";
+    object.header.frame_id = "world";
+    ROS_INFO_STREAM("Now let's edit the primitive.");
+    object.primitives.resize(1);
+    object.primitives[0].type = shape_msgs::SolidPrimitive::BOX;
+    object.primitives[0].dimensions.resize(3);
+    object.primitives[0].dimensions[0] = 0.1;
+    object.primitives[0].dimensions[1] = 0.1;
+    object.primitives[0].dimensions[2] = 1.0;
+
+    // shape_msgs::SolidPrimitive primitive;
+    // primitive.type = primitive.BOX;
+    // primitive.dimensions.resize(2);
+    // primitive.dimensions[0] = length; // height (length of the object)
+    // primitive.dimensions[1] = 0.005; // radius
+    ROS_INFO_STREAM("Now let's edit the pose.");
+    pose.position.x = 1.0; pose.position.y = 0.0; pose.position.z = 1.2;
+    pose.orientation.x = 0.0; pose.orientation.y = 0.0; pose.orientation.z = 0.0;
+    pose.position.z += 0.5 * object.primitives[0].dimensions[0];
+    ROS_INFO_STREAM("Finishing touches.");
+    object.primitive_poses.push_back(pose);
+    object.operation = moveit_msgs::CollisionObject::ADD;
+
+    ROS_INFO_STREAM("Now let's apply it to the planning scene via the psi.");
+    planning_scene_interface.applyCollisionObject(object);
+    ROS_INFO_STREAM("DONE.");
+}
+
 
 
 // Function to convert Eigen::Isometry3d to geometry_msgs::Pose
@@ -270,6 +303,10 @@ int main(int argc, char** argv) {
     moveit_msgs::CollisionObject dynamic_object;
     dynamic_object.id = "dynamic_object";
     dynamic_object.header.frame_id = "world";
+
+    moveit_msgs::CollisionObject pillar;
+    pillar.id = "pillar";
+    pillar.header.frame_id = "world";
     //dynamic_object.type =  shape_msgs::SolidPrimitive::CYLINDER; // object.type is different from primitive_type!
     //std::string dynamic_object_frame_id = "dynamic_object_frame";
 
@@ -285,10 +322,20 @@ int main(int argc, char** argv) {
     const Eigen::Isometry3d& gripper_tip_2_iso = current_state->getGlobalLinkTransform("panda_2_hand") * tip_pose_in_hand_frame;
     geometry_msgs::PoseStamped gripper_tip_2_pose = objectTracker->isometryToPoseStamped(gripper_tip_2_iso, "world");
 
+    
     objectTracker->initObject(gripper_tip_pose, gripper_tip_2_pose, dynamic_object, psi);
+    objectTracker->createPillarObject(pillar, psi);
     // ----------------------------objectTracker->updateTransform(dynamic_object.primitive_poses[0], "world", "dynamic_object_frame", transformStamped);
 // #####################################################################################################################
 
+    std::string dynamic_object_id = "dynamic_object";
+    std::string pillar_id = "pillar";
+
+    // Initialize object groups for collision detection
+    std::vector<std::string> object_group1;
+    std::vector<std::string> object_group2;
+    object_group1.push_back(dynamic_object_id);
+    object_group2.push_back(pillar_id);
 
 
 // ===================================== Planning Scene ======================================================

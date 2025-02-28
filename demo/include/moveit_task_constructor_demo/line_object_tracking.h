@@ -47,6 +47,8 @@ public:
     void publishMarkers(visualization_msgs::MarkerArray& markers);
     void computeCollisionContactPoints(planning_scene::PlanningScenePtr& planning_scene, moveit_msgs::CollisionObject& object,
                                        robot_state::RobotStatePtr& robot);
+    void createPillarObject(moveit_msgs::CollisionObject& object,
+                            moveit::planning_interface::PlanningSceneInterface& planning_scene_interface);
     void updateTransform(const geometry_msgs::Pose& pose, const std::string& parent_frame_id, const std::string& child_frame_id,
                         geometry_msgs::TransformStamped& transformStamped);
     void attachObject(moveit::planning_interface::PlanningSceneInterface& planning_scene_interface,
