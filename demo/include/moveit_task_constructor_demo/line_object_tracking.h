@@ -45,8 +45,11 @@ public:
     geometry_msgs::PoseStamped isometryToPoseStamped(const Eigen::Isometry3d& transform, const std::string& frame_id);
     bool updatePlanningScene(planning_scene::PlanningScene& planning_scene, ros::NodeHandle& nh);
     void publishMarkers(visualization_msgs::MarkerArray& markers);
-    void computeCollisionContactPoints(planning_scene::PlanningScenePtr& planning_scene, moveit_msgs::CollisionObject& object,
-                                       robot_state::RobotStatePtr& robot);
+    void computeCollisionContactPoints(planning_scene::PlanningScenePtr& planning_scene,
+                                        std::vector<std::string> object_group1,
+                                        std::vector<std::string> object_group2,
+                                        //moveit_msgs::CollisionObject& object,
+                                        robot_state::RobotStatePtr& robot);
     void createPillarObject(moveit_msgs::CollisionObject& object,
                             moveit::planning_interface::PlanningSceneInterface& planning_scene_interface);
     void updateTransform(const geometry_msgs::Pose& pose, const std::string& parent_frame_id, const std::string& child_frame_id,

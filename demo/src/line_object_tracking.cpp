@@ -129,7 +129,7 @@ void ObjectTracker::createPillarObject(moveit_msgs::CollisionObject& object,
     object.primitives[0].dimensions.resize(3);
     object.primitives[0].dimensions[0] = 0.1;
     object.primitives[0].dimensions[1] = 0.1;
-    object.primitives[0].dimensions[2] = 1.0;
+    object.primitives[0].dimensions[2] = 0.6;
 
     // shape_msgs::SolidPrimitive primitive;
     // primitive.type = primitive.BOX;
@@ -137,8 +137,9 @@ void ObjectTracker::createPillarObject(moveit_msgs::CollisionObject& object,
     // primitive.dimensions[0] = length; // height (length of the object)
     // primitive.dimensions[1] = 0.005; // radius
     ROS_INFO_STREAM("Now let's edit the pose.");
-    pose.position.x = 1.0; pose.position.y = 0.0; pose.position.z = 1.2;
+    pose.position.x = 0.5; pose.position.y = 0.0; pose.position.z = 1.2;
     pose.orientation.x = 0.0; pose.orientation.y = 0.0; pose.orientation.z = 0.0;
+    pose.orientation.w = 1.0;
     pose.position.z += 0.5 * object.primitives[0].dimensions[0];
     ROS_INFO_STREAM("Finishing touches.");
     object.primitive_poses.push_back(pose);
@@ -200,12 +201,15 @@ void ObjectTracker::publishMarkers(visualization_msgs::MarkerArray& markers)
 }
 
 void ObjectTracker::computeCollisionContactPoints(planning_scene::PlanningScenePtr& planning_scene,
-                                                moveit_msgs::CollisionObject& object,
+                                                std::vector<std::string> object_group1,
+                                                std::vector<std::string> object_group2,
+                                                //moveit_msgs::CollisionObject& object,
                                                 //const geometry_msgs::TransformStamped& transformStamped,
                                                 robot_state::RobotStatePtr& robot) {
 
   collision_detection::CollisionRequest c_req;
   collision_detection::CollisionResult c_res;
+  //collision_detection::CollisionResult c_res_robot;
   //c_req.group_name = "dual_arm";
   c_req.contacts = true;
   c_req.max_contacts = 100;
@@ -213,8 +217,14 @@ void ObjectTracker::computeCollisionContactPoints(planning_scene::PlanningSceneP
   c_req.verbose = false;
 
   // ------------------ Checking for Collisions ------------------
-  planning_scene->checkCollision(c_req, c_res, *robot);//, object, transformStamped);//, *robot);
-
+  //planning_scene->checkCollision(c_req, c_res, *robot);//, object, transformStamped);//, *robot);
+  
+  
+  
+  c_res = planning_scene->getCollisionEnv()->checkCollisionBetweenObjectGroups(object_group1, object_group2);
+  
+  
+  
   // ------------ Displaying Collision Contact Points ------------
   // If there are collisions, we get the contact points and display them as markers. **getCollisionMarkersFromContacts()** is a helper function that adds the
   // collision contact points into a MarkerArray message. If you want to use the contact points for something other than displaying them you can
@@ -348,15 +358,18 @@ int main(int argc, char** argv) {
     planning_scene_monitor->startStateMonitor();
 
     // Create a PlanningScene
+    planning_scene_monitor->requestPlanningSceneState();
+    ros::Duration(1.0).sleep();
+
     planning_scene::PlanningScenePtr planning_scene = planning_scene_monitor->getPlanningScene();
     // Update Planning Scene and check for collisons
     //if (moveit_task_constructor_demo::updatePlanningScene(planning_scene, nh)) {
         // Now you can use the planning_scene object as needed
 
 // ===========================================================================================================
-
+    ros::Duration(1.0).sleep();
     // First collision check
-    objectTracker->computeCollisionContactPoints(planning_scene, dynamic_object, current_state);
+    objectTracker->computeCollisionContactPoints(planning_scene, object_group1, object_group2, current_state);
 
 
     while (ros::ok()) {
@@ -390,7 +403,7 @@ int main(int argc, char** argv) {
         //if (moveit_task_constructor_demo::updatePlanningScene(planning_scene, nh)) {
 
         // Check collision for attached object
-        objectTracker->computeCollisionContactPoints(planning_scene, dynamic_object, current_state);
+        objectTracker->computeCollisionContactPoints(planning_scene, object_group1, object_group2, current_state);
 
         // Now you can use the planning_scene object as needed
         // collision_detection::CollisionRequest collision_request;

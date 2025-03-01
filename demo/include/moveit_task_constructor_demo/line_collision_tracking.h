@@ -28,7 +28,7 @@ namespace moveit_task_constructor_demo {
 class ObjectCollisionTracker
 {
 public:
-    ObjectCollisionTracker(const std::string& robot_description = "robot_description");
+    ObjectCollisionTracker();//const std::string& robot_description = "robot_description");
     ~ObjectCollisionTracker() = default;
     // /** access RobotModel */
     // moveit::core::RobotModelPtr& robotModel() {
@@ -45,23 +45,23 @@ public:
     void initObject(const geometry_msgs::PoseStamped& gripper_pose,
                     const geometry_msgs::PoseStamped& gripper_2_pose,
                     moveit_msgs::CollisionObject& collision_object,
-                    planning_scene_monitor::LockedPlanningSceneRW& planning_scene);
+                    moveit::planning_interface::PlanningSceneInterface& planning_scene_interface);
     void updateObject(const geometry_msgs::PoseStamped& gripper_pose,
                     const geometry_msgs::PoseStamped& gripper_2_pose,
                     moveit_msgs::CollisionObject& collision_object,
-                    planning_scene_monitor::PlanningSceneMonitorPtr planning_scene_monitor);
+                    moveit::planning_interface::PlanningSceneInterface& planning_scene_interface);
     void updateObjectShape(const Eigen::Isometry3d& gripper_pose,
                            const Eigen::Isometry3d& gripper_2_pose,
                            std::string& object_id,
-                           planning_scene_monitor::LockedPlanningSceneRW& planning_scene);
+                           planning_scene::PlanningScenePtr planning_scene_ptr);
     geometry_msgs::PoseStamped isometryToPoseStamped(const Eigen::Isometry3d& transform, const std::string& frame_id);
     void publishMarkers(visualization_msgs::MarkerArray& markers);
-    void computeCollisionContactPoints(planning_scene_monitor::LockedPlanningSceneRW& planning_scene,
+    void computeCollisionContactPoints(planning_scene::PlanningScenePtr planning_scene_ptr,
                                         std::vector<std::string> object_group1,
                                         std::vector<std::string> object_group2,
                                         robot_state::RobotStatePtr& robot);
     moveit_msgs::CollisionObject createSimpleObst();
-    void createPillarShape(planning_scene_monitor::LockedPlanningSceneRW& planning_scene);
+    void createPillarShape(planning_scene::PlanningScenePtr planning_scene_ptr);
     //planning_scene::PlanningScene* g_planning_scene;
     ros::Publisher* g_marker_array_publisher;
     visualization_msgs::MarkerArray g_collision_points;
