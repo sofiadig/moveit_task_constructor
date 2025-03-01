@@ -6,6 +6,34 @@ ObjectCollisionTracker::ObjectCollisionTracker() {
     g_marker_array_publisher = nullptr;
 }
 
+void ObjectCollisionTracker::publishMarkers(visualization_msgs::MarkerArray& markers)
+{
+  //ROS_INFO_STREAM("We are inside the publishMarkers function.");
+  // delete old markers
+  if (!g_collision_points.markers.empty())
+  {
+    //ROS_INFO_STREAM("g_collision_points.markers is not empty --> we should delete them.");
+    for (auto& marker : g_collision_points.markers)
+      marker.action = visualization_msgs::Marker::DELETE;
+
+    g_marker_array_publisher->publish(g_collision_points);
+  }
+  //ROS_INFO_STREAM("We have deleted the old markers. Now let's move the new markers into g_collision_points.");
+
+  // move new markers into g_collision_points
+  std::swap(g_collision_points.markers, markers.markers);
+  ROS_INFO_STREAM("We've updated the g_collision_points. Now let's draw them");
+
+  // draw new markers (if there are any)
+  if (!g_collision_points.markers.empty()) {
+    ROS_INFO_STREAM("We have determined that g_collision_points.markers isn't empty. Let's publish!");
+    g_marker_array_publisher->publish(g_collision_points);
+    ROS_INFO_STREAM("Done. Now let's draw them");
+  }
+
+  ROS_INFO_STREAM("All done.");
+}
+
 void ObjectCollisionTracker::initObject(const geometry_msgs::PoseStamped& gripper_pose,
                                 const geometry_msgs::PoseStamped& gripper_2_pose,
                                 moveit_msgs::CollisionObject& collision_object,
@@ -147,25 +175,6 @@ geometry_msgs::PoseStamped ObjectCollisionTracker::isometryToPoseStamped(const E
     return pose_stamped;
 }
 
-void ObjectCollisionTracker::publishMarkers(visualization_msgs::MarkerArray& markers)
-{
-  // delete old markers
-  if (!g_collision_points.markers.empty())
-  {
-    for (auto& marker : g_collision_points.markers)
-      marker.action = visualization_msgs::Marker::DELETE;
-
-    g_marker_array_publisher->publish(g_collision_points);
-  }
-
-  // move new markers into g_collision_points
-  std::swap(g_collision_points.markers, markers.markers);
-
-  // draw new markers (if there are any)
-  if (!g_collision_points.markers.empty())
-    g_marker_array_publisher->publish(g_collision_points);
-}
-
 void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::PlanningScenePtr planning_scene_ptr,
                                                 std::vector<std::string> object_group1,
                                                 std::vector<std::string> object_group2) {
@@ -193,10 +202,11 @@ void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::Plann
       visualization_msgs::MarkerArray markers;
 
       /* Get the contact points and display them as markers */
-      collision_detection::getCollisionMarkersFromContacts(markers, "panda_link0", c_res.contacts, color,
+      collision_detection::getCollisionMarkersFromContacts(markers, "world", c_res.contacts, color,
                                                            ros::Duration(),  // remain until deleted
                                                            0.01);            // radius
       publishMarkers(markers);
+      ROS_INFO_STREAM("All done with the markers.");
     }
   }
   else
@@ -253,6 +263,8 @@ int main(int argc, char** argv) {
     moveit::planning_interface::PlanningSceneInterface psi;
     moveit::planning_interface::MoveGroupInterface move_group_interface("dual_arm");
     moveit_task_constructor_demo::ObjectCollisionTracker* objectCollisionTracker = new moveit_task_constructor_demo::ObjectCollisionTracker();
+    // Create a marker array publisher for publishing contact points
+    objectCollisionTracker->g_marker_array_publisher = new ros::Publisher(nh.advertise<visualization_msgs::MarkerArray>("interactive_robot_marray", 100));
 
     // ============================================= Planning Scene =============================================
     // ==========================================================================================================
