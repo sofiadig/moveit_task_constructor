@@ -4,34 +4,27 @@ namespace moveit_task_constructor_demo {
 
 ObjectCollisionTracker::ObjectCollisionTracker() {
     g_marker_array_publisher = nullptr;
+    contactPointCount = 0;
 }
 
 void ObjectCollisionTracker::publishMarkers(visualization_msgs::MarkerArray& markers)
 {
-  //ROS_INFO_STREAM("We are inside the publishMarkers function.");
   // delete old markers
   if (!g_collision_points.markers.empty())
   {
-    //ROS_INFO_STREAM("g_collision_points.markers is not empty --> we should delete them.");
     for (auto& marker : g_collision_points.markers)
       marker.action = visualization_msgs::Marker::DELETE;
 
     g_marker_array_publisher->publish(g_collision_points);
   }
-  //ROS_INFO_STREAM("We have deleted the old markers. Now let's move the new markers into g_collision_points.");
 
   // move new markers into g_collision_points
   std::swap(g_collision_points.markers, markers.markers);
-  ROS_INFO_STREAM("We've updated the g_collision_points. Now let's draw them");
 
   // draw new markers (if there are any)
   if (!g_collision_points.markers.empty()) {
-    ROS_INFO_STREAM("We have determined that g_collision_points.markers isn't empty. Let's publish!");
     g_marker_array_publisher->publish(g_collision_points);
-    ROS_INFO_STREAM("Done. Now let's draw them");
   }
-
-  ROS_INFO_STREAM("All done.");
 }
 
 void ObjectCollisionTracker::initObject(const geometry_msgs::PoseStamped& gripper_pose,
@@ -144,9 +137,9 @@ void ObjectCollisionTracker::updateObject(const geometry_msgs::PoseStamped& grip
 
     // Apply the collision object to the planning scene
     // Create a PlanningScene message
-    moveit_msgs::PlanningScene planning_scene_msg;
-    planning_scene_msg.is_diff = true;  // Set as a "diff" to modify only necessary parts
-    planning_scene_msg.world.collision_objects.push_back(collision_object);
+    // moveit_msgs::PlanningScene planning_scene_msg;
+    // planning_scene_msg.is_diff = true;  // Set as a "diff" to modify only necessary parts
+    // planning_scene_msg.world.collision_objects.push_back(collision_object);
 
     // Apply the updated scene
     psi.applyCollisionObject(collision_object);
@@ -194,19 +187,22 @@ void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::Plann
     ROS_INFO_STREAM("COLLIDING contact_point_count: " << c_res.contact_count);
     if (c_res.contact_count > 0)
     {
-      std_msgs::ColorRGBA color;
-      color.r = 1.0;
-      color.g = 0.0;
-      color.b = 1.0;
-      color.a = 0.5;
-      visualization_msgs::MarkerArray markers;
+      ROS_INFO_STREAM("c_res.contact_count: " << c_res.contact_count << "; contactPointCount: " << contactPointCount);
+      if (static_cast<int>(c_res.contact_count) > contactPointCount) {
+        std_msgs::ColorRGBA color;
+        color.r = 1.0;
+        color.g = 0.0;
+        color.b = 1.0;
+        color.a = 0.5;
+        visualization_msgs::MarkerArray markers;
 
-      /* Get the contact points and display them as markers */
-      collision_detection::getCollisionMarkersFromContacts(markers, "world", c_res.contacts, color,
-                                                           ros::Duration(),  // remain until deleted
-                                                           0.01);            // radius
-      publishMarkers(markers);
-      ROS_INFO_STREAM("All done with the markers.");
+        /* Get the contact points and display them as markers */
+        collision_detection::getCollisionMarkersFromContacts(markers, "world", c_res.contacts, color,
+                                                            ros::Duration(),  // remain until deleted
+                                                            0.01);            // radius
+        publishMarkers(markers);
+        contactPointCount++;
+      }
     }
   }
   else
@@ -277,11 +273,10 @@ int main(int argc, char** argv) {
     // =========================================== Initialize pillar ============================================
     // ==========================================================================================================
     // Create pillar
-    ROS_INFO_STREAM("This is BEFORE adding the pillar with psi.");
     moveit_msgs::CollisionObject pillar = objectCollisionTracker->createSimpleObst();
-    psi.applyCollisionObject(pillar);
-    ROS_INFO_STREAM("This is AFTER adding the pillar with psi.");
     // Add pillar using planning scene interface
+    psi.applyCollisionObject(pillar);
+
     ros::Duration(1.0).sleep(); // Wait for planning scene to be updated
     planning_scene_monitor->requestPlanningSceneState();
     planning_scene::PlanningScenePtr planning_scene = planning_scene_monitor->getPlanningScene();
@@ -322,6 +317,7 @@ int main(int argc, char** argv) {
 
     // ================= Test to check if pillar and DLO are both successfully added in scene  ==================
     // ==========================================================================================================
+    //planning_scene_monitor->requestPlanningSceneState();
     planning_scene_monitor::LockedPlanningSceneRO scene(planning_scene_monitor);
     if (scene->getWorld()->hasObject("pillar")) {
         if(scene->getWorld()->hasObject("dynamic_object")) { ROS_INFO_STREAM("YES - Objects 'pillar' and 'dynamic_object' are visible in PlanningSceneMonitor!"); }

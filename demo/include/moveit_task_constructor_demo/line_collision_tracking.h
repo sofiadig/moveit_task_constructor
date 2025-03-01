@@ -62,6 +62,8 @@ public:
     moveit_msgs::CollisionObject createSimpleObst();
     void createPillarShape(planning_scene::PlanningScenePtr planning_scene_ptr);
     //planning_scene::PlanningScene* g_planning_scene;
+
+    int contactPointCount;
     ros::Publisher* g_marker_array_publisher;
     visualization_msgs::MarkerArray g_collision_points;
 

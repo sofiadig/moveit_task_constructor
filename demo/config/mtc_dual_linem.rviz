@@ -375,7 +375,7 @@ Visualization Manager:
         Voxel Rendering: Occupied Voxels
       Show Trail: false
       State Display Time: REALTIME
-      Task Solution Topic: /mtc_dlo_handling/solution
+      Task Solution Topic: /mtc_dlo_collision_handling/solution
       Tasks:
         {}
       Trail Step Size: 1
@@ -546,5 +546,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1607
-  X: 187
-  Y: 181
+  X: 167
+  Y: 158

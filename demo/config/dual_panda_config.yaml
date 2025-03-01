@@ -63,7 +63,7 @@ dlo_reference_frame: "world"
 marker_name: "line_marker"
 
 # Table model
-spawn_table: true
+spawn_table: false
 table_1_name: "table_1"
 table_1_dimensions: [0.4, 0.5, 0.1]  # [length, width, height]
 table_1_pose: [0.6, 0.5, 1.0, 0, 0, 0]
