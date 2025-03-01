@@ -58,8 +58,7 @@ public:
     void publishMarkers(visualization_msgs::MarkerArray& markers);
     void computeCollisionContactPoints(planning_scene::PlanningScenePtr planning_scene_ptr,
                                         std::vector<std::string> object_group1,
-                                        std::vector<std::string> object_group2,
-                                        robot_state::RobotStatePtr& robot);
+                                        std::vector<std::string> object_group2);
     moveit_msgs::CollisionObject createSimpleObst();
     void createPillarShape(planning_scene::PlanningScenePtr planning_scene_ptr);
     //planning_scene::PlanningScene* g_planning_scene;
