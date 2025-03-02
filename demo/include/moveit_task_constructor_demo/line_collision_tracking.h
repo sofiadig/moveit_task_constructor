@@ -50,10 +50,23 @@ public:
                     const geometry_msgs::PoseStamped& gripper_2_pose,
                     moveit_msgs::CollisionObject& collision_object,
                     moveit::planning_interface::PlanningSceneInterface& planning_scene_interface);
+    void updateObject2(const geometry_msgs::PoseStamped& gripper_pose,
+                        const geometry_msgs::PoseStamped& gripper_2_pose,
+                        moveit_msgs::CollisionObject& collision_object,
+                        moveit::planning_interface::PlanningSceneInterface& psi );
     void updateObjectShape(const Eigen::Isometry3d& gripper_pose,
                            const Eigen::Isometry3d& gripper_2_pose,
                            std::string& object_id,
                            planning_scene::PlanningScenePtr planning_scene_ptr);
+    void updateObjectShape2(const geometry_msgs::PoseStamped& gripper_pose,
+                            const geometry_msgs::PoseStamped& gripper_2_pose,
+                            std::string& object_id,
+                            planning_scene::PlanningScenePtr planning_scene_ptr);
+    void determinePose(const geometry_msgs::PoseStamped& gripper_tip_pose,
+                        const geometry_msgs::PoseStamped& gripper_tip_2_pose,
+                        geometry_msgs::PoseStamped& result_pose_msgs,
+                        Eigen::Isometry3d& result_pose_iso,
+                        double& length);
     geometry_msgs::PoseStamped isometryToPoseStamped(const Eigen::Isometry3d& transform, const std::string& frame_id);
     void publishMarkers(visualization_msgs::MarkerArray& markers);
     void computeCollisionContactPoints(planning_scene::PlanningScenePtr planning_scene_ptr,

@@ -84,9 +84,9 @@ void ObjectCollisionTracker::updateObjectShape(const Eigen::Isometry3d& gripper_
     Eigen::Vector3d end_point = gripper_2_pose.translation();
     // Compute the length of the object
     double cylinder_length = sqrt(pow(end_point.x() - start_point.x(), 2) +
-                                    pow(end_point.y() - start_point.y(), 2) +
-                                    pow(end_point.z() - start_point.z(), 2));
-    double cylinder_radius = 0.03;
+                                  pow(end_point.y() - start_point.y(), 2) +
+                                  pow(end_point.z() - start_point.z(), 2));
+    double cylinder_radius = 0.005;
 
     // Define the pose of the cylinder (midpoint between start and end points)
     Eigen::Isometry3d cylinder_pose;
@@ -95,7 +95,10 @@ void ObjectCollisionTracker::updateObjectShape(const Eigen::Isometry3d& gripper_
     cylinder_pose.translation().z() = (start_point.z() + end_point.z()) / 2.0;
 
     // Compute the orientation to align the cylinder along the line
-    Eigen::Vector3d axis = (end_point - start_point).normalized();
+    //Eigen::Vector3d axis = (end_point - start_point).normalized();
+    Eigen::Vector3d p1(start_point.x(), start_point.y(), start_point.z());
+    Eigen::Vector3d p2(end_point.x(), end_point.y(), end_point.z());
+    Eigen::Vector3d axis = (p2 - p1).normalized();
     Eigen::Quaterniond orientation = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d::UnitZ(), axis);
     cylinder_pose.rotate(orientation);
     
@@ -145,6 +148,69 @@ void ObjectCollisionTracker::updateObject(const geometry_msgs::PoseStamped& grip
     psi.applyCollisionObject(collision_object);
 }
 
+void ObjectCollisionTracker::updateObjectShape2(const geometry_msgs::PoseStamped&  gripper_pose,
+                                const geometry_msgs::PoseStamped&  gripper_2_pose,
+                                std::string& object_id,
+                                planning_scene::PlanningScenePtr planning_scene_ptr) {
+    
+    geometry_msgs::PoseStamped result_pose_msgs;
+    Eigen::Isometry3d cylinder_pose;
+    double cylinder_length;
+    double cylinder_radius = 0.005;
+    determinePose(gripper_pose, gripper_2_pose, result_pose_msgs, cylinder_pose, cylinder_length);
+
+    shapes::ShapePtr cylinder_shape(new shapes::Cylinder(cylinder_radius, cylinder_length));
+    planning_scene_ptr->getWorldNonConst()->addToObject(object_id, cylinder_shape, cylinder_pose);
+}
+
+void ObjectCollisionTracker::updateObject2(const geometry_msgs::PoseStamped& gripper_pose,
+                                    const geometry_msgs::PoseStamped& gripper_2_pose,
+                                    moveit_msgs::CollisionObject& collision_object,
+                                    moveit::planning_interface::PlanningSceneInterface& psi ) {
+    geometry_msgs::PoseStamped result_pose_msgs;
+    Eigen::Isometry3d result_pose_iso;
+    double length;
+    determinePose(gripper_pose, gripper_2_pose, result_pose_msgs, result_pose_iso, length);
+    collision_object.primitives[0].dimensions[0] = length;
+    collision_object.primitives[0].dimensions[1] = 0.005;
+    collision_object.primitive_poses[0] = result_pose_msgs.pose;
+
+    // Apply the updated scene
+    psi.applyCollisionObject(collision_object);
+}
+
+void ObjectCollisionTracker::determinePose(const geometry_msgs::PoseStamped& gripper_tip_pose,
+                                            const geometry_msgs::PoseStamped& gripper_tip_2_pose,
+                                            geometry_msgs::PoseStamped& result_pose_msgs,
+                                            Eigen::Isometry3d& result_pose_iso,
+                                            double& length) {
+    // Define the start & end point
+    geometry_msgs::Point start_point = gripper_tip_2_pose.pose.position;
+    geometry_msgs::Point end_point = gripper_tip_pose.pose.position;
+
+    length = sqrt(pow(end_point.x - start_point.x, 2) +
+                pow(end_point.y - start_point.y, 2) +
+                pow(end_point.z - start_point.z, 2));
+
+    // Compute the orientation to align the cylinder along the line
+    result_pose_iso = Eigen::Isometry3d::Identity();
+    Eigen::Vector3d p1(start_point.x, start_point.y, start_point.z);
+    Eigen::Vector3d p2(end_point.x, end_point.y, end_point.z);
+    Eigen::Vector3d axis = (p2 - p1).normalized();
+    Eigen::Quaterniond orientation = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d::UnitZ(), axis);
+    result_pose_iso.rotate(orientation);
+
+
+    // Define the pose of the cylinder (midpoint between start and end points)
+    result_pose_iso.translation().x() = (start_point.x + end_point.x) / 2.0;
+    result_pose_iso.translation().y() = (start_point.y + end_point.y) / 2.0;
+    result_pose_iso.translation().z() = (start_point.z + end_point.z) / 2.0;
+
+
+    result_pose_msgs = isometryToPoseStamped(result_pose_iso, "world");
+}
+
+
 
 // Function to convert Eigen::Isometry3d to geometry_msgs::PoseStamped
 geometry_msgs::PoseStamped ObjectCollisionTracker::isometryToPoseStamped(const Eigen::Isometry3d& transform, const std::string& frame_id) {
@@ -187,8 +253,8 @@ void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::Plann
     ROS_INFO_STREAM("COLLIDING contact_point_count: " << c_res.contact_count);
     if (c_res.contact_count > 0)
     {
-      ROS_INFO_STREAM("c_res.contact_count: " << c_res.contact_count << "; contactPointCount: " << contactPointCount);
-      if (static_cast<int>(c_res.contact_count) > contactPointCount) {
+      ROS_INFO_STREAM("c_res.contact_count: " << static_cast<int>(c_res.contact_count) << "; contactPointCount: " << contactPointCount);
+      if (static_cast<int>(c_res.contact_count) != contactPointCount) {
         std_msgs::ColorRGBA color;
         color.r = 1.0;
         color.g = 0.0;
@@ -224,7 +290,7 @@ moveit_msgs::CollisionObject ObjectCollisionTracker::createSimpleObst() {
     object.primitives[0].dimensions.resize(3);
 	object.primitives[0].dimensions[0] = 0.1;
     object.primitives[0].dimensions[1] = 0.1;
-    object.primitives[0].dimensions[2] = 1.0;
+    object.primitives[0].dimensions[2] = 0.5;
     pose.position.x = 0.5; pose.position.y = 0.0; pose.position.z = 1.2;
     pose.orientation.x = 0.0; pose.orientation.y = 0.0; pose.orientation.z = 0.0;
 	pose.position.z += 0.5 * object.primitives[0].dimensions[0];
@@ -345,8 +411,9 @@ int main(int argc, char** argv) {
         gripper_tip_2_pose = objectCollisionTracker->isometryToPoseStamped(gripper_tip_2_iso, "world");
 
         // Update the dynamic object
-        objectCollisionTracker->updateObjectShape(gripper_tip_iso, gripper_tip_2_iso, dynamic_object.id, planning_scene);
-        objectCollisionTracker->updateObject(gripper_tip_pose, gripper_tip_2_pose, dynamic_object, psi);
+        objectCollisionTracker->updateObjectShape2(gripper_tip_pose, gripper_tip_2_pose, dynamic_object.id, planning_scene);
+        // objectCollisionTracker->updateObjectShape(gripper_tip_iso, gripper_tip_2_iso, dynamic_object.id, planning_scene);
+        objectCollisionTracker->updateObject2(gripper_tip_pose, gripper_tip_2_pose, dynamic_object, psi);
 
         // Check for collisions between the object and the environment
         objectCollisionTracker->computeCollisionContactPoints(planning_scene, object_group1, object_group2);
