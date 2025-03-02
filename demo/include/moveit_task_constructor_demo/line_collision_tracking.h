@@ -67,13 +67,22 @@ public:
                         geometry_msgs::PoseStamped& result_pose_msgs,
                         Eigen::Isometry3d& result_pose_iso,
                         double& length);
+    void updateDLO(const geometry_msgs::PoseStamped&  start_pose,
+                    const geometry_msgs::PoseStamped&  end_pose,
+                    moveit_msgs::CollisionObject& collision_object,
+                    planning_scene::PlanningScenePtr planning_scene_ptr,
+                    moveit::planning_interface::PlanningSceneInterface& psi,
+                    const collision_detection::Contact& current_contact,
+                    bool& hasNewContact,
+                    int& num_segments);
     geometry_msgs::PoseStamped isometryToPoseStamped(const Eigen::Isometry3d& transform, const std::string& frame_id);
     void publishMarkers(visualization_msgs::MarkerArray& markers);
     void computeCollisionContactPoints(planning_scene::PlanningScenePtr planning_scene_ptr,
                                         std::vector<std::string> object_group1,
                                         std::vector<std::string> object_group2,
                                         collision_detection::CollisionResult& c_res,
-                                        std::vector<collision_detection::Contact>& stored_contacts);
+                                        std::vector<collision_detection::Contact>& stored_contacts,
+                                        bool& isNewContact);
     moveit_msgs::CollisionObject createSimpleObst();
     void createPillarShape(planning_scene::PlanningScenePtr planning_scene_ptr);
     //planning_scene::PlanningScene* g_planning_scene;
