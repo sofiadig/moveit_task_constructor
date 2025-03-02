@@ -377,7 +377,8 @@ int main(int argc, char** argv) {
 
     // ==================== Add DLO object as World::Object and moveit_msgs::CollisionObject ====================
     // ==========================================================================================================
-    objectCollisionTracker->updateObjectShape(gripper_tip_iso, gripper_tip_2_iso, dynamic_object.id, planning_scene);
+    objectCollisionTracker->updateObjectShape2(gripper_tip_pose, gripper_tip_2_pose, dynamic_object.id, planning_scene);
+    //objectCollisionTracker->updateObjectShape(gripper_tip_iso, gripper_tip_2_iso, dynamic_object.id, planning_scene);
     objectCollisionTracker->initObject(gripper_tip_pose, gripper_tip_2_pose, dynamic_object, psi);
     ros::Duration(1.0).sleep(); // Wait for planning scene to be updated
 
