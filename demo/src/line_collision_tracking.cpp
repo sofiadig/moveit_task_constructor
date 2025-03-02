@@ -158,25 +158,26 @@ void ObjectCollisionTracker::updateDLO(const geometry_msgs::PoseStamped&  start_
                                     int& num_segments) {
     if (hasNewContact) {
         // Turn contact point position vector into poseStamped
-        geometry_msgs::PoseStamped contactPos;
-        contactPos.header.frame_id = "world";
-        contactPos.header.stamp = ros::Time::now();
-        // Set the position
-        contactPos.pose.position.x = current_contact.pos.x();
-        contactPos.pose.position.y = current_contact.pos.y();
-        contactPos.pose.position.z = current_contact.pos.z();
-        // Set the orientation
-        Eigen::Quaterniond quat(Eigen::Isometry3d::Identity().rotation());
-        contactPos.pose.orientation.w = quat.w();
-        contactPos.pose.orientation.x = quat.x();
-        contactPos.pose.orientation.y = quat.y();
-        contactPos.pose.orientation.z = quat.z();
+        geometry_msgs::PoseStamped contactPos = vectorToPoseStamped(current_contact.pos);
+        // contactPos.header.frame_id = "world";
+        // contactPos.header.stamp = ros::Time::now();
+        // // Set the position
+        // contactPos.pose.position.x = current_contact.pos.x();
+        // contactPos.pose.position.y = current_contact.pos.y();
+        // contactPos.pose.position.z = current_contact.pos.z();
+        // // Set the orientation
+        // Eigen::Quaterniond quat(Eigen::Isometry3d::Identity().rotation());
+        // contactPos.pose.orientation.w = quat.w();
+        // contactPos.pose.orientation.x = quat.x();
+        // contactPos.pose.orientation.y = quat.y();
+        // contactPos.pose.orientation.z = quat.z();
         num_segments++;
         // For moveit_msgs part: Create two lines: 
         // 1. from the previous start point to the current contact point
         // First section should be new object called [previous_id]_1 , 2, 3, etc.
         moveit_msgs::CollisionObject first_segment;
-        first_segment.id = "dynamic_object_" + std::to_string(num_segments);
+        std::string segment_name = "dynamic_object_" + std::to_string(num_segments);
+        first_segment.id = segment_name;
         first_segment.header.frame_id = "world";
         initObject(start_pose, contactPos, first_segment, psi);
 
@@ -268,6 +269,27 @@ geometry_msgs::PoseStamped ObjectCollisionTracker::isometryToPoseStamped(const E
 
     // Set the orientation
     Eigen::Quaterniond quat(transform.rotation());
+    pose_stamped.pose.orientation.w = quat.w();
+    pose_stamped.pose.orientation.x = quat.x();
+    pose_stamped.pose.orientation.y = quat.y();
+    pose_stamped.pose.orientation.z = quat.z();
+    
+    return pose_stamped;
+}
+
+geometry_msgs::PoseStamped ObjectCollisionTracker::vectorToPoseStamped(const Eigen::Vector3d& position) {
+    geometry_msgs::PoseStamped pose_stamped;
+    // Set the header
+    pose_stamped.header.frame_id = "world";
+    pose_stamped.header.stamp = ros::Time::now();
+    
+    // Set the position
+    pose_stamped.pose.position.x = position.x();
+    pose_stamped.pose.position.y = position.y();
+    pose_stamped.pose.position.z = position.z();
+
+    // Set the orientation
+    Eigen::Quaterniond quat(Eigen::Isometry3d::Identity().rotation());
     pose_stamped.pose.orientation.w = quat.w();
     pose_stamped.pose.orientation.x = quat.x();
     pose_stamped.pose.orientation.y = quat.y();
@@ -437,9 +459,9 @@ int main(int argc, char** argv) {
 
     // ==================== Add DLO object as World::Object and moveit_msgs::CollisionObject ====================
     // ==========================================================================================================
-    objectCollisionTracker->updateObjectShape2(gripper_tip_pose, gripper_tip_2_pose, dynamic_object.id, planning_scene);
+    objectCollisionTracker->updateObjectShape2(gripper_tip_2_pose, gripper_tip_pose, dynamic_object.id, planning_scene);
     //objectCollisionTracker->updateObjectShape(gripper_tip_iso, gripper_tip_2_iso, dynamic_object.id, planning_scene);
-    objectCollisionTracker->initObject(gripper_tip_pose, gripper_tip_2_pose, dynamic_object, psi);
+    objectCollisionTracker->initObject(gripper_tip_2_pose, gripper_tip_pose, dynamic_object, psi);
     ros::Duration(1.0).sleep(); // Wait for planning scene to be updated
 
     // ================= Test to check if pillar and DLO are both successfully added in scene  ==================
@@ -472,14 +494,14 @@ int main(int argc, char** argv) {
 
         // Derive the gripper positions from the current robot state
         gripper_tip_iso = current_state->getGlobalLinkTransform("panda_1_hand") * tip_pose_in_hand_frame;
-        gripper_tip_2_pose = objectCollisionTracker->isometryToPoseStamped(gripper_tip_2_iso, "world");
+        gripper_tip_pose = objectCollisionTracker->isometryToPoseStamped(gripper_tip_iso, "world");
+        
         if (num_segments == 0) {
             gripper_tip_2_iso = current_state->getGlobalLinkTransform("panda_2_hand") * tip_pose_in_hand_frame;
-            gripper_tip_pose = objectCollisionTracker->isometryToPoseStamped(gripper_tip_iso, "world");
+            gripper_tip_2_pose = objectCollisionTracker->isometryToPoseStamped(gripper_tip_2_iso, "world");
         }
         else {
-            // ------------------------------------TO-DO--------------------------------------------------------------------------------------------------------
-            // gripper_tip_pose = ContactPositionVectorToPoseStamped(contacts.back.pos);
+            gripper_tip_2_pose = objectCollisionTracker->vectorToPoseStamped(contacts[contacts.size()-1].pos);
         }
         
         
@@ -488,7 +510,7 @@ int main(int argc, char** argv) {
         // Update the dynamic object
         // objectCollisionTracker->updateObjectShape2(gripper_tip_pose, gripper_tip_2_pose, dynamic_object.id, planning_scene);
         // objectCollisionTracker->updateObject2(gripper_tip_pose, gripper_tip_2_pose, dynamic_object, psi);
-        objectCollisionTracker->updateDLO(gripper_tip_pose, gripper_tip_2_pose, dynamic_object, planning_scene, psi, contacts.back(), isNewContact, num_segments);
+        objectCollisionTracker->updateDLO(gripper_tip_2_pose, gripper_tip_pose, dynamic_object, planning_scene, psi, contacts.back(), isNewContact, num_segments);
 
         // Check for collisions between the object and the environment
         objectCollisionTracker->computeCollisionContactPoints(planning_scene, object_group1, object_group2, c_res, contacts, isNewContact);

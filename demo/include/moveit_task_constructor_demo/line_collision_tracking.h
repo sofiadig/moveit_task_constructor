@@ -75,6 +75,7 @@ public:
                     const collision_detection::Contact& current_contact,
                     bool& hasNewContact,
                     int& num_segments);
+    geometry_msgs::PoseStamped vectorToPoseStamped(const Eigen::Vector3d& position);
     geometry_msgs::PoseStamped isometryToPoseStamped(const Eigen::Isometry3d& transform, const std::string& frame_id);
     void publishMarkers(visualization_msgs::MarkerArray& markers);
     void computeCollisionContactPoints(planning_scene::PlanningScenePtr planning_scene_ptr,
