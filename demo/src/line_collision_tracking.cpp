@@ -235,26 +235,40 @@ geometry_msgs::PoseStamped ObjectCollisionTracker::isometryToPoseStamped(const E
 }
 
 void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::PlanningScenePtr planning_scene_ptr,
-                                                std::vector<std::string> object_group1,
-                                                std::vector<std::string> object_group2) {
-  collision_detection::CollisionRequest c_req;
-  collision_detection::CollisionResult c_res;
-  c_req.group_name = "dual_arm";
-  c_req.contacts = true;
-  c_req.max_contacts = 100;
-  c_req.max_contacts_per_pair = 5;
-  c_req.verbose = false;
-
+                                                            std::vector<std::string> object_group1,
+                                                            std::vector<std::string> object_group2,
+                                                            collision_detection::CollisionResult& c_res,
+                                                            std::vector<collision_detection::Contact>& stored_contacts) {
   // ----------------------------------------- Checking for Collisions ------------------------------------------
   c_res = planning_scene_ptr->getCollisionEnv()->checkCollisionBetweenObjectGroups(object_group1, object_group2);
+  std::pair<std::string, std::string> object_pair = {"dynamic_object", "pillar"};
+  
+  auto contact_points = c_res.contacts.find(object_pair);
+  if (contact_points != c_res.contacts.end()) {
+    // Print the points to console
+    // std::cout << "These are the stored contacts: ";
+    // for (auto c : contact_points->second) {
+    //     std::cout << c.pos;
+    // }
+    for (auto& c : contact_points->second) {
+        auto it = std::find_if(stored_contacts.begin(), stored_contacts.end(), [&c](const collision_detection::Contact& existing) { return existing == c; });
+        //stored_contacts.find(c);
+        if (it == stored_contacts.end()) {
+            stored_contacts.push_back(c);
+            std::cout << "New contact stored at: [" << c.pos.x() << ", " << c.pos.y() << ", " << c.pos.z() << std::endl;
+        }
+    }
+    std::cout << "We have stored " << stored_contacts.size() << " contacts." << std::endl;
+  }
+  
 
   if (c_res.collision)
   {
     ROS_INFO_STREAM("COLLIDING contact_point_count: " << c_res.contact_count);
     if (c_res.contact_count > 0)
     {
-      ROS_INFO_STREAM("c_res.contact_count: " << static_cast<int>(c_res.contact_count) << "; contactPointCount: " << contactPointCount);
-      if (static_cast<int>(c_res.contact_count) != contactPointCount) {
+      //ROS_INFO_STREAM("c_res.contact_count: " << static_cast<int>(c_res.contact_count) << "; contactPointCount: " << contactPointCount);
+      //if (static_cast<int>(c_res.contact_count) != contactPointCount) {
         std_msgs::ColorRGBA color;
         color.r = 1.0;
         color.g = 0.0;
@@ -267,8 +281,8 @@ void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::Plann
                                                             ros::Duration(),  // remain until deleted
                                                             0.01);            // radius
         publishMarkers(markers);
-        contactPointCount++;
-      }
+        //contactPointCount++;
+      //}
     }
   }
   else
@@ -321,6 +335,8 @@ int main(int argc, char** argv) {
     ros::NodeHandle nh;
     ros::AsyncSpinner spinner(1);
     spinner.start();
+
+    using Contacts = std::vector<collision_detection::Contact>;
 
     moveit::planning_interface::PlanningSceneInterface psi;
     moveit::planning_interface::MoveGroupInterface move_group_interface("dual_arm");
@@ -396,11 +412,14 @@ int main(int argc, char** argv) {
     // ==========================================================================================================
 
     // First collision check
-    //objectCollisionTracker->computeCollisionContactPoints(planning_scene, object_group1, object_group2);
+    collision_detection::CollisionResult c_res;
+    Contacts contacts;
+    //objectCollisionTracker->computeCollisionContactPoints(planning_scene, object_group1, object_group2, c_res);
 
     // ====================== Loop for updating the object position and checking collisions =====================
     // ==========================================================================================================
     while (ros::ok()) {
+        c_res.clear();
         // Get the current state of the robot & current planning scene
         planning_scene = planning_scene_monitor->getPlanningScene();
         robot_state::RobotStatePtr current_state = move_group_interface.getCurrentState();
@@ -417,7 +436,7 @@ int main(int argc, char** argv) {
         objectCollisionTracker->updateObject2(gripper_tip_pose, gripper_tip_2_pose, dynamic_object, psi);
 
         // Check for collisions between the object and the environment
-        objectCollisionTracker->computeCollisionContactPoints(planning_scene, object_group1, object_group2);
+        objectCollisionTracker->computeCollisionContactPoints(planning_scene, object_group1, object_group2, c_res, contacts);
         ros::Duration(0.1).sleep();
     }
     return 0;
