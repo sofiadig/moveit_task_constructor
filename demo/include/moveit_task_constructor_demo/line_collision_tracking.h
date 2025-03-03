@@ -72,7 +72,7 @@ public:
                     moveit_msgs::CollisionObject& collision_object,
                     planning_scene::PlanningScenePtr planning_scene_ptr,
                     moveit::planning_interface::PlanningSceneInterface& psi,
-                    const collision_detection::Contact& current_contact,
+                    const std::vector<collision_detection::Contact>& adjusted_contacts,
                     bool& hasNewContact,
                     int& num_segments);
     geometry_msgs::PoseStamped vectorToPoseStamped(const Eigen::Vector3d& position);
@@ -83,14 +83,21 @@ public:
                                         std::vector<std::string> object_group2,
                                         collision_detection::CollisionResult& c_res,
                                         std::vector<collision_detection::Contact>& stored_contacts,
+                                        std::vector<collision_detection::Contact>& adjusted_contacts,
                                         bool& isNewContact);
     moveit_msgs::CollisionObject createSimpleObst();
+    //collision_detection::Contact adjustContactPoint(const collision_detection::Contact& contact) ;
+    Eigen::Vector3d determineNearestCornerPoint(const collision_detection::Contact& contact_point,
+                                                const std::map<std::string,Eigen::Vector3d>& cornerPoints);
+    std::map<std::string, Eigen::Vector3d> getCornerPoints(const moveit_msgs::CollisionObject& pillar);
+    collision_detection::Contact adjustContactPoint(const collision_detection::Contact& contact_point);
     void createPillarShape(planning_scene::PlanningScenePtr planning_scene_ptr);
     //planning_scene::PlanningScene* g_planning_scene;
 
     int contactPointCount;
     ros::Publisher* g_marker_array_publisher;
     visualization_msgs::MarkerArray g_collision_points;
+    std::map<std::string, Eigen::Vector3d> corner_points;
 
 private:    
     /* marker publishers */
