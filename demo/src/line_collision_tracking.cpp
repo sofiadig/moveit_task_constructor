@@ -322,14 +322,14 @@ void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::Plann
             isNewContact = true;
         }
     }
-    std::cout << "We have stored " << stored_contacts.size() << " contacts." << std::endl;
+    //std::cout << "We have stored " << stored_contacts.size() << " contacts." << std::endl;
   }
 
   std::map<std::pair<std::string, std::string>, std::vector<collision_detection::Contact>> adjusted_map = {{object_pair, adjusted_contacts}};
 
   if (c_res.collision)
   {
-    ROS_INFO_STREAM("COLLIDING contact_point_count: " << c_res.contact_count);
+    ROS_INFO_STREAM("COLLIDING");// contact_point_count: " << c_res.contact_count);
     if (c_res.contact_count > 0)
     {
       //ROS_INFO_STREAM("c_res.contact_count: " << static_cast<int>(c_res.contact_count) << "; contactPointCount: " << contactPointCount);
@@ -379,10 +379,10 @@ std::map<std::string, Eigen::Vector3d> ObjectCollisionTracker::getCornerPoints(c
 
     double x_center = pillar.primitive_poses[0].position.x;
     double y_center = pillar.primitive_poses[0].position.y;
-    double x_low  = x_center - pillar.primitives[0].dimensions[0] / 2 - 0.012;
-    double x_high = x_center + pillar.primitives[0].dimensions[0] / 2 + 0.012;
-    double y_low  = y_center - pillar.primitives[0].dimensions[1] / 2 - 0.012;
-    double y_high = y_center + pillar.primitives[0].dimensions[1] / 2 + 0.012;
+    double x_low  = x_center - pillar.primitives[0].dimensions[0] / 2 - 0.01;
+    double x_high = x_center + pillar.primitives[0].dimensions[0] / 2 + 0.01;
+    double y_low  = y_center - pillar.primitives[0].dimensions[1] / 2 - 0.01;
+    double y_high = y_center + pillar.primitives[0].dimensions[1] / 2 + 0.01;
 
     x_low_y_low.x() = x_low;
     x_low_y_low.y() = y_low;
@@ -460,10 +460,10 @@ moveit_msgs::CollisionObject ObjectCollisionTracker::createSimpleObst() {
     object.primitives[0].dimensions.resize(3);
 	object.primitives[0].dimensions[0] = 0.1;
     object.primitives[0].dimensions[1] = 0.1;
-    object.primitives[0].dimensions[2] = 0.5;
-    pose.position.x = 0.5; pose.position.y = 0.0; pose.position.z = 1.2;
+    object.primitives[0].dimensions[2] = 0.3;
+    pose.position.x = 0.45; pose.position.y = 0.25; pose.position.z = 1.0;
     pose.orientation.x = 0.0; pose.orientation.y = 0.0; pose.orientation.z = 0.0;
-	pose.position.z += 0.5 * object.primitives[0].dimensions[0];
+	pose.position.z += 0.5 * object.primitives[0].dimensions[2];
 	object.primitive_poses.push_back(pose);
     object.operation = moveit_msgs::CollisionObject::ADD;
 	return object;
@@ -605,7 +605,7 @@ int main(int argc, char** argv) {
 
         // Check for collisions between the object and the environment
         objectCollisionTracker->computeCollisionContactPoints(planning_scene, object_group1, object_group2, c_res, original_contacts, adjusted_contacts, isNewContact);
-        std::cout << isNewContact << std::endl;
+        //std::cout << isNewContact << std::endl;
         ros::Duration(0.1).sleep();
     }
     return 0;
