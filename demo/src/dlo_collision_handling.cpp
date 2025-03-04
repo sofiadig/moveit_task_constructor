@@ -233,8 +233,8 @@ bool Dlo_Collision_Handling::init() {
 
 	// Cartesian planner
 	auto cartesian_planner = std::make_shared<solvers::CartesianPath>();
-	cartesian_planner->setMaxVelocityScalingFactor(1.0);
-	cartesian_planner->setMaxAccelerationScalingFactor(1.0);
+	cartesian_planner->setMaxVelocityScalingFactor(0.5);
+	cartesian_planner->setMaxAccelerationScalingFactor(0.7);
 	cartesian_planner->setStepSize(.01);
 
 	// Set task properties
@@ -353,16 +353,46 @@ bool Dlo_Collision_Handling::init() {
 		t.add(std::move(stage));
 	}
 
-	/****************************************************
-    *               Attach Object                       *
-	****************************************************/
+	// /****************************************************
+	//  *                                                  *
+	//  *          Hand_1     Move upward                *
+	//  *                                                  *
+	//  ***************************************************/
 	// {
-	// 	auto stage = std::make_unique<stages::ModifyPlanningScene>("attach object");
-	// 	stage->attachObject(dlo, hand_1_frame_);
+	// 	auto stage = std::make_unique<stages::MoveRelative>("move upward", cartesian_planner);
+	// 	stage->properties().configureInitFrom(Stage::PARENT, { "group" });
+	// 	//stage->setGroup(arm_1_group_name_);
+	// 	stage->setMinMaxDistance(0.1, 0.2);
+	// 	stage->setIKFrame(hand_1_frame_);
+	// 	stage->properties().set("marker_ns", "retreat");
+	// 	geometry_msgs::Vector3Stamped vec;
+	// 	vec.header.frame_id = world_frame_;
+	// 	vec.vector.x = 0.0;
+	// 	vec.vector.y = 0.0;
+	// 	vec.vector.z = 1.0;
+	// 	stage->setDirection(vec);
+	// 	//move_forward_stage_ptr = stage.get();
 	// 	t.add(std::move(stage));
-	// 	//grasp->insert(std::move(stage));
 	// }
 
+	/******************************************************
+	//  *                                                    *
+	//  *          Move hand_1 to start                      *
+	//  *                                                    *
+	//  *****************************************************/
+	// {
+	// 	auto stage = std::make_unique<stages::MoveTo>("move hand_1 to start", sampling_planner);
+	// 	stage->properties().configureInitFrom(Stage::PARENT, { "group" });
+	// 	//stage->setGroup(arm_1_group_name_);
+	// 	geometry_msgs::PoseStamped point;
+	// 	point.header.frame_id = "world";
+	// 	point.pose.position.x = 0.3;
+	// 	point.pose.position.y = 0.4;
+	// 	point.pose.position.z = 1.5;
+	// 	stage->setGoal(point);
+	// 	stage->restrictDirection(stages::MoveTo::FORWARD);
+	// 	t.add(std::move(stage));
+	// }
 	/****************************************************
 	 *                                                  *
 	 *          Hand_1     Move forward                 *
@@ -373,15 +403,36 @@ bool Dlo_Collision_Handling::init() {
 		auto stage = std::make_unique<stages::MoveRelative>("move forward", cartesian_planner);
 		stage->properties().configureInitFrom(Stage::PARENT, { "group" });
 		//stage->setGroup(arm_1_group_name_);
-		stage->setMinMaxDistance(.2, 1.5);
+		stage->setMinMaxDistance(.15, 0.2);
 		stage->setIKFrame(hand_1_frame_);
 		stage->properties().set("marker_ns", "retreat");
 		geometry_msgs::Vector3Stamped vec;
 		vec.header.frame_id = world_frame_;
-		vec.vector.x = 1.0;
-		vec.vector.y = -1.0;
+		vec.vector.x = 0.66;
+		vec.vector.y = -0.1;
 		stage->setDirection(vec);
 		move_forward_stage_ptr = stage.get();
+		t.add(std::move(stage));
+	}
+
+	/****************************************************
+	 *                                                  *
+	 *          Hand_1     Move sideways                *
+	 *                                                  *
+	 ***************************************************/
+	{
+		auto stage = std::make_unique<stages::MoveRelative>("move sideways", cartesian_planner);
+		stage->properties().configureInitFrom(Stage::PARENT, { "group" });
+		//stage->setGroup(arm_1_group_name_);
+		stage->setMinMaxDistance(0.2, 1.5);
+		stage->setIKFrame(hand_1_frame_);
+		stage->properties().set("marker_ns", "retreat");
+		geometry_msgs::Vector3Stamped vec;
+		vec.header.frame_id = world_frame_;
+		vec.vector.x = 0.0;
+		vec.vector.y = -1.0;
+		stage->setDirection(vec);
+		//move_forward_stage_ptr = stage.get();
 		t.add(std::move(stage));
 	}
 
@@ -465,32 +516,20 @@ bool Dlo_Collision_Handling::init() {
 // 		t.add(std::move(middle));
 // 	}
 
-	/******************************************************
-	 *                                                    *
-	 *          Move hand_1 to Home                       *
-	 *                                                    *
-	 *****************************************************/
-	{
-		auto stage = std::make_unique<stages::MoveTo>("move hand_1 home", sampling_planner);
-		//stage->properties().configureInitFrom(Stage::PARENT, { "group" });
-		stage->setGroup(arm_1_group_name_);
-		stage->setGoal(up_pose);
-		stage->restrictDirection(stages::MoveTo::FORWARD);
-		t.add(std::move(stage));
-	}
 
-	/******************************************************
-	 *                                                    *
-	 *          Move hand_2 to Home                       *
-	 *                                                    *
-	 *****************************************************/
-	{
-		auto stage = std::make_unique<stages::MoveTo>("move hand_2 home", sampling_planner);
-		stage->setGroup(arm_2_group_name_);
-		stage->setGoal(arm_2_home_pose_);
-		stage->restrictDirection(stages::MoveTo::FORWARD);
-		t.add(std::move(stage));
-	}
+
+	// /******************************************************
+	//  *                                                    *
+	//  *          Move hand_2 to Home                       *
+	//  *                                                    *
+	//  *****************************************************/
+	// {
+	// 	auto stage = std::make_unique<stages::MoveTo>("move hand_2 home", sampling_planner);
+	// 	stage->setGroup(arm_2_group_name_);
+	// 	stage->setGoal(arm_2_home_pose_);
+	// 	stage->restrictDirection(stages::MoveTo::FORWARD);
+	// 	t.add(std::move(stage));
+	// }
 
 
 	// prepare Task structure for planning
