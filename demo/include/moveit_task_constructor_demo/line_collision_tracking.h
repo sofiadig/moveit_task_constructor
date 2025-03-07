@@ -46,22 +46,18 @@ public:
                     const geometry_msgs::PoseStamped& moving_point,
                     moveit_msgs::CollisionObject& collision_object,
                     moveit::planning_interface::PlanningSceneInterface& planning_scene_interface);
-    void updateObject(const geometry_msgs::PoseStamped& steady_point,
-                    const geometry_msgs::PoseStamped& moving_point,
-                    moveit_msgs::CollisionObject& collision_object,
-                    moveit::planning_interface::PlanningSceneInterface& planning_scene_interface);
     void updateObject2(const geometry_msgs::PoseStamped& gripper_pose,
                         const geometry_msgs::PoseStamped& gripper_2_pose,
                         moveit_msgs::CollisionObject& collision_object,
                         moveit::planning_interface::PlanningSceneInterface& psi );
-    void updateObjectShape(const Eigen::Isometry3d& steady_point,
-                           const Eigen::Isometry3d& moving_point,
-                           std::string& object_id,
-                           planning_scene::PlanningScenePtr planning_scene_ptr);
     void updateObjectShape2(const geometry_msgs::PoseStamped& steady_point,
                             const geometry_msgs::PoseStamped& moving_point,
                             std::string& object_id,
                             planning_scene::PlanningScenePtr planning_scene_ptr);
+    void initObjectShape(const geometry_msgs::PoseStamped&  steady_point,
+                                const geometry_msgs::PoseStamped&  moving_point,
+                                std::string& object_id,
+                                planning_scene::PlanningScenePtr planning_scene_ptr);
     void determinePose(const geometry_msgs::PoseStamped& steady_point,
                         const geometry_msgs::PoseStamped& moving_point,
                         geometry_msgs::PoseStamped& result_pose_msgs,
