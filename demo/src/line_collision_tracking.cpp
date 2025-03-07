@@ -31,52 +31,29 @@ void ObjectCollisionTracker::initObject(const geometry_msgs::PoseStamped& steady
                                 const geometry_msgs::PoseStamped& moving_point,
                                 moveit_msgs::CollisionObject& collision_object,
                                 moveit::planning_interface::PlanningSceneInterface& planning_scene_interface ) {
-    geometry_msgs::Point start_point = steady_point.pose.position;
-    geometry_msgs::Point end_point = moving_point.pose.position;
-
-    double length = sqrt(pow(end_point.x - start_point.x, 2) +
-                         pow(end_point.y - start_point.y, 2) +
-                         pow(end_point.z - start_point.z, 2));
-
-    // Define the primitive and its dimensions (cylinder)
+    geometry_msgs::PoseStamped result_pose_msgs;
+    Eigen::Isometry3d result_pose_iso;
+    double length;
+    determinePose(steady_point, moving_point, result_pose_msgs, result_pose_iso, length);
+    
     shape_msgs::SolidPrimitive primitive;
     primitive.type = primitive.CYLINDER;
     primitive.dimensions.resize(2);
-    primitive.dimensions[0] = length; // height (length of the object)
-    primitive.dimensions[1] = 0.005; // radius
+    primitive.dimensions[0] = length;
+    primitive.dimensions[1] = 0.005;
 
-    // Define the pose of the cylinder (midpoint between start and end points)
-    geometry_msgs::Pose cylinder_pose;
-    cylinder_pose.position.x = (start_point.x + end_point.x) / 2.0;
-    cylinder_pose.position.y = (start_point.y + end_point.y) / 2.0;
-    cylinder_pose.position.z = (start_point.z + end_point.z) / 2.0;
-
-    // Compute the orientation to align the cylinder along the line
-    Eigen::Vector3d p1(start_point.x, start_point.y, start_point.z);
-    Eigen::Vector3d p2(end_point.x, end_point.y, end_point.z);
-    Eigen::Vector3d axis = (p2 - p1).normalized();
-    Eigen::Quaterniond orientation = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d::UnitZ(), axis);
-    cylinder_pose.orientation.w = orientation.w();
-    cylinder_pose.orientation.x = orientation.x();
-    cylinder_pose.orientation.y = orientation.y();
-    cylinder_pose.orientation.z = orientation.z();
-
-    // Add the primitive and pose to the collision object
-    //collision_object.pose = cylinder_pose; // Change this when updating to multiple primitives! like = primitive_poses.peek() or omething
     collision_object.primitives.push_back(primitive);
-    collision_object.primitive_poses.push_back(cylinder_pose);
+    collision_object.primitive_poses.push_back(result_pose_msgs.pose);
     collision_object.operation = moveit_msgs::CollisionObject::ADD;
 
-    // Apply the collision object to the planning scene
     planning_scene_interface.applyCollisionObject(collision_object);
 }
-
 
 
 void ObjectCollisionTracker::updateDLO(const geometry_msgs::PoseStamped&  start_pose,
                                     const geometry_msgs::PoseStamped&  end_pose,
                                     moveit_msgs::CollisionObject& collision_object,
-                                    planning_scene::PlanningScenePtr planning_scene_ptr,
+                                    planning_scene::PlanningScenePtr& planning_scene_ptr,
                                     moveit::planning_interface::PlanningSceneInterface& psi,
                                     const std::vector<collision_detection::Contact>& adjusted_contacts,
                                     bool& hasNewContact,
@@ -90,9 +67,7 @@ void ObjectCollisionTracker::updateDLO(const geometry_msgs::PoseStamped&  start_
     }
     
     if (hasNewContact) {
-        // For moveit_msgs part: Create two lines: 
         // 1. from the previous start point to the current contact point
-        // First section should be new object called [previous_id]_1 , 2, 3, etc.
         moveit_msgs::CollisionObject first_segment;
         std::string segment_name = "segment_" + std::to_string(num_segments);
         first_segment.id = segment_name;
@@ -100,25 +75,15 @@ void ObjectCollisionTracker::updateDLO(const geometry_msgs::PoseStamped&  start_
         initObject(start_pose, contactPos, first_segment, psi);
         num_segments++;
     }
-    // For shapes & Eigen part: only do step 2
     // 2. Set the start pose of the second line as the contact point, end pose stays the same
-    updateObjectShape2(contactPos, end_pose, collision_object.id, planning_scene_ptr);
-    updateObject2(contactPos, end_pose, collision_object, psi);
-    
-    
-    // else if (hasNewContact && adjusted_contacts.empty()) {
-    //     ROS_WARN_STREAM("Problem: adjusted_contacts should have elements but is empty instead.");
-    // }
-    // else {
-    //     updateObjectShape2(start_pose, end_pose, collision_object.id, planning_scene_ptr);
-    //     updateObject2(start_pose, end_pose, collision_object, psi);
-    // }
+    updateObject(contactPos, end_pose, collision_object, planning_scene_ptr, psi);
 }
 
-void ObjectCollisionTracker::initObjectShape(const geometry_msgs::PoseStamped&  steady_point,
+void ObjectCollisionTracker::updateObject(const geometry_msgs::PoseStamped&  steady_point,
                                 const geometry_msgs::PoseStamped&  moving_point,
-                                std::string& object_id,
-                                planning_scene::PlanningScenePtr planning_scene_ptr) {
+                                moveit_msgs::CollisionObject& collision_object,
+                                planning_scene::PlanningScenePtr& planning_scene_ptr,
+                                moveit::planning_interface::PlanningSceneInterface& psi) {
     geometry_msgs::PoseStamped result_pose_msgs;
     Eigen::Isometry3d cylinder_pose;
     double cylinder_length;
@@ -126,51 +91,15 @@ void ObjectCollisionTracker::initObjectShape(const geometry_msgs::PoseStamped&  
     determinePose(steady_point, moving_point, result_pose_msgs, cylinder_pose, cylinder_length);
 
     shapes::ShapePtr cylinder_shape(new shapes::Cylinder(cylinder_radius, cylinder_length));
-    planning_scene_ptr->getWorldNonConst()->addToObject(object_id, cylinder_shape, cylinder_pose);
-}
+    planning_scene_ptr->getWorldNonConst()->addToObject(collision_object.id, cylinder_shape, cylinder_pose);
 
-void ObjectCollisionTracker::updateObjectShape2(const geometry_msgs::PoseStamped&  steady_point,
-                                const geometry_msgs::PoseStamped&  moving_point,
-                                std::string& object_id,
-                                planning_scene::PlanningScenePtr planning_scene_ptr) {
-    
-    geometry_msgs::PoseStamped result_pose_msgs;
-    Eigen::Isometry3d cylinder_pose;
-    double cylinder_length;
-    double cylinder_radius = 0.005;
-    //std::vector<shapes::ShapeConstPtr> old_shapes = planning_scene_ptr->getWorldNonConst()->getObject(object_id)->shapes_;
-
-    determinePose(steady_point, moving_point, result_pose_msgs, cylinder_pose, cylinder_length);
-    shapes::ShapePtr cylinder_shape(new shapes::Cylinder(cylinder_radius, cylinder_length));
-
-    //planning_scene_ptr->getWorldNonConst()->removeObject(object_id);
-    planning_scene_ptr->getWorldNonConst()->addToObject(object_id, cylinder_shape, cylinder_pose);
-
-    //planning_scene_ptr->getWorldNonConst()->removeShapeFromObject(object_id, old_shapes.first);
-    // if (!old_shapes.empty()) {
-    //     for (auto it : old_shapes) {
-    //         planning_scene_ptr->getWorldNonConst()->removeShapeFromObject(object_id, it);
-    //     }
-    // }
-    
-}
-
-void ObjectCollisionTracker::updateObject2(const geometry_msgs::PoseStamped& steady_point,
-                                    const geometry_msgs::PoseStamped& moving_point,
-                                    moveit_msgs::CollisionObject& collision_object,
-                                    moveit::planning_interface::PlanningSceneInterface& psi) {
-    geometry_msgs::PoseStamped result_pose_msgs;
-    Eigen::Isometry3d result_pose_iso;
-    double length;
-
-    determinePose(steady_point, moving_point, result_pose_msgs, result_pose_iso, length);
-    collision_object.primitives[0].dimensions[0] = length;
-    collision_object.primitives[0].dimensions[1] = 0.005;
+    collision_object.primitives[0].dimensions[0] = cylinder_length;
+    collision_object.primitives[0].dimensions[1] = cylinder_radius;
     collision_object.primitive_poses[0] = result_pose_msgs.pose;
-
-    // Apply the updated scene
     psi.applyCollisionObject(collision_object);
 }
+
+
 
 void ObjectCollisionTracker::determinePose(const geometry_msgs::PoseStamped& steady_point,
                                             const geometry_msgs::PoseStamped& moving_point,
@@ -253,7 +182,6 @@ void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::Plann
                                                             std::vector<collision_detection::Contact>& stored_contacts,
                                                             std::vector<collision_detection::Contact>& adjusted_contacts,
                                                             bool& isNewContact) {
-  // ----------------------------------------- Checking for Collisions ------------------------------------------
   isNewContact = false;
   // Suppress std::cout
   std::ofstream null_stream("/dev/null");
@@ -270,11 +198,6 @@ void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::Plann
   
   auto contact_points = c_res.contacts.find(object_pair);
   if (contact_points != c_res.contacts.end()) {
-    // Print the points to console
-    // std::cout << "These are the stored contacts: ";
-    // for (auto c : contact_points->second) {
-    //     std::cout << c.pos;
-    // }
     for (auto& c : contact_points->second) {
         auto it = std::find_if(stored_contacts.begin(), stored_contacts.end(), [&c](const collision_detection::Contact& existing) { return existing == c; });
         if (it == stored_contacts.end()) {
@@ -284,7 +207,6 @@ void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::Plann
             isNewContact = true;
         }
     }
-    //std::cout << "We have stored " << stored_contacts.size() << " contacts." << std::endl;
   }
 
   std::map<std::pair<std::string, std::string>, std::vector<collision_detection::Contact>> adjusted_map = {{object_pair, adjusted_contacts}};
@@ -294,8 +216,6 @@ void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::Plann
     ROS_INFO_STREAM("COLLIDING");// contact_point_count: " << c_res.contact_count);
     if (c_res.contact_count > 0)
     {
-      //ROS_INFO_STREAM("c_res.contact_count: " << static_cast<int>(c_res.contact_count) << "; contactPointCount: " << contactPointCount);
-      //if (static_cast<int>(c_res.contact_count) != contactPointCount) {
         std_msgs::ColorRGBA color;
         color.r = 1.0;
         color.g = 0.0;
@@ -308,8 +228,6 @@ void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::Plann
                                                             ros::Duration(),  // remain until deleted
                                                             0.01);            // radius
         publishMarkers(markers);
-        //contactPointCount++;
-      //}
     }
   }
   else
@@ -320,16 +238,6 @@ void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::Plann
     publishMarkers(empty_marker_array);
   }
 }
-
-// Function to move contact point outside of the obstacle, because the collisions only get detected inside
-// collision_detection::Contact ObjectCollisionTracker::adjustContactPoint(const collision_detection::Contact& contact) {
-//     Eigen::Vector3d direction = contact.normal;
-//     double distance = contact.depth + 0.01;
-
-//     collision_detection::Contact adjusted_contact = contact;
-//     adjusted_contact.pos = contact.pos + distance * direction;
-//     return adjusted_contact;
-// }
 
 // Get the corners of the rectangular cross section of the pillar in the x-y-plane
 std::map<std::string, Eigen::Vector3d> ObjectCollisionTracker::getCornerPoints(const moveit_msgs::CollisionObject& pillar) {
@@ -378,7 +286,6 @@ Eigen::Vector3d ObjectCollisionTracker::determineNearestCornerPoint(const collis
             nearest_corner = pair.second;
         }
     }
-     //= cornerPoints[nearest_corner];
     return nearest_corner;
 }
 
@@ -388,29 +295,6 @@ collision_detection::Contact ObjectCollisionTracker::adjustContactPoint(const co
     adjusted_contact.pos.z() = contact_point.pos.z();
     return adjusted_contact;
 }
-
-// collision_detection::Contact ObjectCollisionTracker::adjustContactPoint(const collision_detection::Contact& contact, const moveit_msgs::CollisionObject& pillar) {
-//     collision_detection::Contact adjusted_contact = contact;
-//     double x_O = pillar.primitive_poses[0].position.x;
-//     double y_O = pillar.primitive_poses[0].position.y;
-
-//     double x_Olow  = x_O - pillar.primitives[0].dimensions[0] / 2;
-//     double x_Ohigh = x_O + pillar.primitives[0].dimensions[0] / 2;
-//     double y_Olow  = y_O - pillar.primitives[0].dimensions[1] / 2;
-//     double y_Ohigh = y_O + pillar.primitives[0].dimensions[1] / 2;
-
-//     double c_x = contact.pos.x();
-//     double c_y = contact.pos.y();
-
-//     if (x_Olow <= c_x && c_x <= x_Ohigh) {
-//         if ( (x_Ohigh-c_x) >= (c_x-x_Olow) ) {
-//             adjusted_contact.pos.x() = x_Olow - 0.01;
-//         }
-//         else {
-//             adjusted_contact.pos.x() = x_Ohigh + 0.01;
-//         }
-//     }
-// }
 
 moveit_msgs::CollisionObject ObjectCollisionTracker::createSimpleObst() {
 	geometry_msgs::Pose pose;
@@ -496,8 +380,7 @@ int main(int argc, char** argv) {
 
     // ==================== Add DLO object as World::Object and moveit_msgs::CollisionObject ====================
     // ==========================================================================================================
-    objectCollisionTracker->initObjectShape(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object.id, planning_scene);
-    //objectCollisionTracker->updateObjectShape(moving_hand_tip_iso, steady_hand_tip_iso, dynamic_object.id, planning_scene);
+    objectCollisionTracker->updateObject(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object, planning_scene, psi);
     objectCollisionTracker->initObject(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object, psi);
     ros::Duration(1.0).sleep(); // Wait for planning scene to be updated
 
@@ -553,34 +436,13 @@ int main(int argc, char** argv) {
                 steady_hand_tip_pose = objectCollisionTracker->isometryToPoseStamped(steady_hand_tip_iso, "world");
             }
         }
-        
-        
-        
-        // if (num_segments == 1) {
-        //     steady_hand_tip_iso  = current_state->getGlobalLinkTransform("panda_2_hand") * tip_pose_in_hand_frame;
-        //     steady_hand_tip_pose = objectCollisionTracker->isometryToPoseStamped(steady_hand_tip_iso, "world");
-        // }
-        // else {
-        //     if (isNewContact && !adjusted_contacts.empty()) {
-        //         steady_hand_tip_pose = objectCollisionTracker->vectorToPoseStamped(adjusted_contacts[adjusted_contacts.size()-1].pos);
-        //     }
-        //     else if (!adjusted_contacts.empty()){
-        //         steady_hand_tip_pose = objectCollisionTracker->vectorToPoseStamped(adjusted_contacts[adjusted_contacts.size()-1].pos);
-        //     }
-        //     else {
-        //         ROS_WARN_STREAM("Problem: Adjusted_contacts is empty, but the number of segments is not 1");
-        //     }
-        // }
-        
-        // Update the dynamic object
-        // objectCollisionTracker->updateObjectShape2(moving_hand_tip_pose, steady_hand_tip_pose, dynamic_object.id, planning_scene);
-        // objectCollisionTracker->updateObject2(moving_hand_tip_pose, steady_hand_tip_pose, dynamic_object, psi);
+
         objectCollisionTracker->updateDLO(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object, planning_scene,
                                             psi, adjusted_contacts, isNewContact, num_segments);
 
         // Check for collisions between the object and the environment
         objectCollisionTracker->computeCollisionContactPoints(planning_scene, object_group1, object_group2, c_res, original_contacts, adjusted_contacts, isNewContact);
-        //std::cout << isNewContact << std::endl;
+        
         ros::Duration(0.1).sleep();
     }
     return 0;

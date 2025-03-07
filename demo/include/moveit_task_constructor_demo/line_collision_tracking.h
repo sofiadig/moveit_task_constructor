@@ -54,10 +54,6 @@ public:
                             const geometry_msgs::PoseStamped& moving_point,
                             std::string& object_id,
                             planning_scene::PlanningScenePtr planning_scene_ptr);
-    void initObjectShape(const geometry_msgs::PoseStamped&  steady_point,
-                                const geometry_msgs::PoseStamped&  moving_point,
-                                std::string& object_id,
-                                planning_scene::PlanningScenePtr planning_scene_ptr);
     void determinePose(const geometry_msgs::PoseStamped& steady_point,
                         const geometry_msgs::PoseStamped& moving_point,
                         geometry_msgs::PoseStamped& result_pose_msgs,
@@ -66,11 +62,16 @@ public:
     void updateDLO(const geometry_msgs::PoseStamped&  start_pose,
                     const geometry_msgs::PoseStamped&  end_pose,
                     moveit_msgs::CollisionObject& collision_object,
-                    planning_scene::PlanningScenePtr planning_scene_ptr,
+                    planning_scene::PlanningScenePtr& planning_scene_ptr,
                     moveit::planning_interface::PlanningSceneInterface& psi,
                     const std::vector<collision_detection::Contact>& adjusted_contacts,
                     bool& hasNewContact,
                     int& num_segments);
+    void updateObject(const geometry_msgs::PoseStamped&  steady_point,
+                        const geometry_msgs::PoseStamped&  moving_point,
+                        moveit_msgs::CollisionObject& collision_object,
+                        planning_scene::PlanningScenePtr& planning_scene_ptr,
+                        moveit::planning_interface::PlanningSceneInterface& psi) ;
     geometry_msgs::PoseStamped vectorToPoseStamped(const Eigen::Vector3d& position);
     geometry_msgs::PoseStamped isometryToPoseStamped(const Eigen::Isometry3d& transform, const std::string& frame_id);
     void publishMarkers(visualization_msgs::MarkerArray& markers);
