@@ -233,7 +233,7 @@ bool Dlo_Collision_Handling::init() {
 
 	// Cartesian planner
 	auto cartesian_planner = std::make_shared<solvers::CartesianPath>();
-	cartesian_planner->setMaxVelocityScalingFactor(0.5);
+	cartesian_planner->setMaxVelocityScalingFactor(0.3);
 	cartesian_planner->setMaxAccelerationScalingFactor(0.7);
 	cartesian_planner->setStepSize(.01);
 
@@ -424,7 +424,7 @@ bool Dlo_Collision_Handling::init() {
 		auto stage = std::make_unique<stages::MoveRelative>("move sideways", cartesian_planner);
 		stage->properties().configureInitFrom(Stage::PARENT, { "group" });
 		//stage->setGroup(arm_1_group_name_);
-		stage->setMinMaxDistance(0.2, 1.5);
+		stage->setMinMaxDistance(0.2, 0.8);
 		stage->setIKFrame(hand_1_frame_);
 		stage->properties().set("marker_ns", "retreat");
 		geometry_msgs::Vector3Stamped vec;
