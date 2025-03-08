@@ -40,8 +40,8 @@ object_pose: [0.6, 0.5, 1.1, 0, 0, 0]
 
 # Simple Obstacle
 simple_obst_name: "pillar"
-simple_obst_dimensions: [0.1, 0.1, 1.0]
-simple_obst_pose: [0.4, 0.0, 1.2, 0, 0, 0]
+simple_obst_dimensions: [0.1, 0.1, 0.35]
+simple_obst_pose: [0.45, 0.2, 1.0, 0.0, 0.0, 0.0]
 
 # Obstacle specifications
 obstacle_name: "obstacle"

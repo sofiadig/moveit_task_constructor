@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Load parameters from a YAML file -->
+    <rosparam file="$(find moveit_task_constructor_demo)/config/dual_panda_config.yaml" command="load"/>
+    <!-- Run MTC DLO Handling -->
+    <node name="dynamic_object_tracker" pkg="moveit_task_constructor_demo" type="line_collision_tracking_demo" output="screen">
+        <param name="execute" value="true" />
+    </node>
+
+</launch>

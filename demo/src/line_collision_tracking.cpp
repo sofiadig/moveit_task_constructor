@@ -4,28 +4,11 @@ namespace moveit_task_constructor_demo {
 
 ObjectCollisionTracker::ObjectCollisionTracker() {
     g_marker_array_publisher = nullptr;
-    contactPointCount = 0;
 }
 
-void ObjectCollisionTracker::publishMarkers(visualization_msgs::MarkerArray& markers)
-{
-  // delete old markers
-  if (!g_collision_points.markers.empty())
-  {
-    for (auto& marker : g_collision_points.markers)
-      marker.action = visualization_msgs::Marker::DELETE;
-
-    g_marker_array_publisher->publish(g_collision_points);
-  }
-
-  // move new markers into g_collision_points
-  std::swap(g_collision_points.markers, markers.markers);
-
-  // draw new markers (if there are any)
-  if (!g_collision_points.markers.empty()) {
-    g_marker_array_publisher->publish(g_collision_points);
-  }
-}
+// ==================================================================================================================================================
+// ========================== 1. Initializing =======================================================================================================
+// ==================================================================================================================================================
 
 void ObjectCollisionTracker::initObject(const geometry_msgs::PoseStamped& steady_point,
                                 const geometry_msgs::PoseStamped& moving_point,
@@ -49,6 +32,34 @@ void ObjectCollisionTracker::initObject(const geometry_msgs::PoseStamped& steady
     planning_scene_interface.applyCollisionObject(collision_object);
 }
 
+moveit_msgs::CollisionObject ObjectCollisionTracker::createSimpleObst(const ros::NodeHandle& nh) {
+	moveit_msgs::CollisionObject object;
+    object.id = "pillar";
+    object.header.frame_id = "world";
+    geometry_msgs::Pose pose;
+	
+	object.primitives.resize(1);
+	object.primitives[0].type = shape_msgs::SolidPrimitive::BOX;
+    object.primitives[0].dimensions.resize(3);
+	object.primitives[0].dimensions[0] = 0.1;
+    object.primitives[0].dimensions[1] = 0.1;
+    object.primitives[0].dimensions[2] = 0.35;
+    pose.position.x = 0.45;
+    pose.position.y = 0.2;
+    pose.position.z = 1.0;
+    pose.orientation.x = 0.0;
+    pose.orientation.y = 0.0;
+    pose.orientation.z = 0.0;
+	pose.position.z += 0.5 * object.primitives[0].dimensions[2];
+
+	object.primitive_poses.push_back(pose);
+    object.operation = moveit_msgs::CollisionObject::ADD;
+	return object;
+}
+
+// ==================================================================================================================================================
+// ========================== 2. Updates at each iteration ==========================================================================================
+// ==================================================================================================================================================
 
 void ObjectCollisionTracker::updateDLO(const geometry_msgs::PoseStamped&  start_pose,
                                     const geometry_msgs::PoseStamped&  end_pose,
@@ -89,7 +100,7 @@ void ObjectCollisionTracker::updateObject(const geometry_msgs::PoseStamped&  ste
     double cylinder_length;
     double cylinder_radius = 0.005;
     determinePose(steady_point, moving_point, result_pose_msgs, cylinder_pose, cylinder_length);
-
+    
     shapes::ShapePtr cylinder_shape(new shapes::Cylinder(cylinder_radius, cylinder_length));
     planning_scene_ptr->getWorldNonConst()->addToObject(collision_object.id, cylinder_shape, cylinder_pose);
 
@@ -99,7 +110,9 @@ void ObjectCollisionTracker::updateObject(const geometry_msgs::PoseStamped&  ste
     psi.applyCollisionObject(collision_object);
 }
 
-
+// ==================================================================================================================================================
+// ========================== 3. Pose computations ==================================================================================================
+// ==================================================================================================================================================
 
 void ObjectCollisionTracker::determinePose(const geometry_msgs::PoseStamped& steady_point,
                                             const geometry_msgs::PoseStamped& moving_point,
@@ -130,9 +143,6 @@ void ObjectCollisionTracker::determinePose(const geometry_msgs::PoseStamped& ste
     result_pose_msgs = isometryToPoseStamped(result_pose_iso, "world");
 }
 
-
-
-// Function to convert Eigen::Isometry3d to geometry_msgs::PoseStamped
 geometry_msgs::PoseStamped ObjectCollisionTracker::isometryToPoseStamped(const Eigen::Isometry3d& transform, const std::string& frame_id) {
     geometry_msgs::PoseStamped pose_stamped;
     // Set the header
@@ -156,16 +166,13 @@ geometry_msgs::PoseStamped ObjectCollisionTracker::isometryToPoseStamped(const E
 
 geometry_msgs::PoseStamped ObjectCollisionTracker::vectorToPoseStamped(const Eigen::Vector3d& position) {
     geometry_msgs::PoseStamped pose_stamped;
-    // Set the header
     pose_stamped.header.frame_id = "world";
     pose_stamped.header.stamp = ros::Time::now();
     
-    // Set the position
     pose_stamped.pose.position.x = position.x();
     pose_stamped.pose.position.y = position.y();
     pose_stamped.pose.position.z = position.z();
 
-    // Set the orientation
     Eigen::Quaterniond quat(Eigen::Isometry3d::Identity().rotation());
     pose_stamped.pose.orientation.w = quat.w();
     pose_stamped.pose.orientation.x = quat.x();
@@ -175,6 +182,12 @@ geometry_msgs::PoseStamped ObjectCollisionTracker::vectorToPoseStamped(const Eig
     return pose_stamped;
 }
 
+
+
+// ==================================================================================================================================================
+// ========================== 4. Computing collisions ===============================================================================================
+// ==================================================================================================================================================
+
 void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::PlanningScenePtr planning_scene_ptr,
                                                             std::vector<std::string> object_group1,
                                                             std::vector<std::string> object_group2,
@@ -182,61 +195,83 @@ void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::Plann
                                                             std::vector<collision_detection::Contact>& stored_contacts,
                                                             std::vector<collision_detection::Contact>& adjusted_contacts,
                                                             bool& isNewContact) {
-  isNewContact = false;
-  // Suppress std::cout
-  std::ofstream null_stream("/dev/null");
-  std::streambuf* cout_buffer = std::cout.rdbuf(nullptr);  // Save original buffer (to nullptr aka dont save)
-  std::cout.rdbuf(null_stream.rdbuf());  // Redirect std::cout to null
+    isNewContact = false;
+    // Suppress std::cout
+    std::ofstream null_stream("/dev/null");
+    std::streambuf* cout_buffer = std::cout.rdbuf(nullptr);  // Save original buffer (to nullptr aka dont save)
+    std::cout.rdbuf(null_stream.rdbuf());  // Redirect std::cout to null
+    
+    // Check collisions between DLO and obstacle
+    c_res = planning_scene_ptr->getCollisionEnv()->checkCollisionBetweenObjectGroups(object_group1, object_group2); // cout suppressed
 
-  c_res = planning_scene_ptr->getCollisionEnv()->checkCollisionBetweenObjectGroups(object_group1, object_group2); // cout suppressed
+    // Restore std::cout
+    std::cout.rdbuf(cout_buffer);
 
-  // Restore std::cout
-  std::cout.rdbuf(cout_buffer);
-
-  std::pair<std::string, std::string> object_pair = {"dynamic_object", "pillar"};
-  
-  
-  auto contact_points = c_res.contacts.find(object_pair);
-  if (contact_points != c_res.contacts.end()) {
-    for (auto& c : contact_points->second) {
-        auto it = std::find_if(stored_contacts.begin(), stored_contacts.end(), [&c](const collision_detection::Contact& existing) { return existing == c; });
-        if (it == stored_contacts.end()) {
-            stored_contacts.push_back(c);
-            adjusted_contacts.push_back(adjustContactPoint(c));
-            std::cout << " +++++++++++ New contact stored at: [" << c.pos.x() << ", " << c.pos.y() << ", " << c.pos.z() << "] +++++++++++" << std::endl;
-            isNewContact = true;
+    std::pair<std::string, std::string> object_pair = {"dynamic_object", "pillar"};
+    auto contact_points = c_res.contacts.find(object_pair);
+        if (contact_points != c_res.contacts.end()) {
+        for (auto& c : contact_points->second) {
+            auto it = std::find_if(stored_contacts.begin(), stored_contacts.end(), [&c](const collision_detection::Contact& existing) { return existing == c; });
+            if (it == stored_contacts.end()) {
+                stored_contacts.push_back(c);
+                adjusted_contacts.push_back(adjustContactPoint(c));
+                std::cout << " +++++++++++ New contact stored at: [" << c.pos.x() << ", " << c.pos.y() << ", " << c.pos.z() << "] +++++++++++" << std::endl;
+                isNewContact = true;
+            }
         }
     }
-  }
 
-  std::map<std::pair<std::string, std::string>, std::vector<collision_detection::Contact>> adjusted_map = {{object_pair, adjusted_contacts}};
+    // Create a map, because the getCollisionMarkersFromContacts function takes that as a parameter
+    std::map<std::pair<std::string, std::string>, std::vector<collision_detection::Contact>> adjusted_map = {{object_pair, adjusted_contacts}};
 
-  if (c_res.collision)
-  {
-    ROS_INFO_STREAM("COLLIDING");// contact_point_count: " << c_res.contact_count);
-    if (c_res.contact_count > 0)
-    {
-        std_msgs::ColorRGBA color;
-        color.r = 1.0;
-        color.g = 0.0;
-        color.b = 1.0;
-        color.a = 0.5;
-        visualization_msgs::MarkerArray markers;
+    if (c_res.collision) {
+        ROS_INFO_STREAM("COLLIDING");// Optional: "contact_point_count: " << c_res.contact_count);
+        if (c_res.contact_count > 0)
+        {
+            std_msgs::ColorRGBA color;
+            color.r = 1.0;
+            color.g = 0.0;
+            color.b = 1.0;
+            color.a = 0.5;
+            visualization_msgs::MarkerArray markers;
 
-        /* Get the contact points and display them as markers */
-        collision_detection::getCollisionMarkersFromContacts(markers, "world", adjusted_map, color, // originally: markers, "world", c_res.contacts, color,
-                                                            ros::Duration(),  // remain until deleted
-                                                            0.01);            // radius
-        publishMarkers(markers);
+            /* Get the contact points and display them as markers */
+            collision_detection::getCollisionMarkersFromContacts(markers, "world", adjusted_map, color,
+                                                                ros::Duration(),  // remain until deleted
+                                                                0.01);            // radius
+            publishMarkers(markers);
+        }
     }
-  }
-  else
-  {
-    ROS_INFO("Not colliding");
-    // delete the old collision point markers
-    visualization_msgs::MarkerArray empty_marker_array;
-    publishMarkers(empty_marker_array);
-  }
+    else
+    {
+        ROS_INFO("Not colliding");
+        // delete the old collision point markers
+        visualization_msgs::MarkerArray empty_marker_array;
+        publishMarkers(empty_marker_array);
+    }
+}
+
+// ==================================================================================================================================================
+// ========================== 5. Handling & publishing contact points ===============================================================================
+// ==================================================================================================================================================
+
+void ObjectCollisionTracker::publishMarkers(visualization_msgs::MarkerArray& markers)
+{
+    // delete old markers
+    if (!g_collision_points.markers.empty()) {
+        for (auto& marker : g_collision_points.markers)
+            marker.action = visualization_msgs::Marker::DELETE;
+
+        g_marker_array_publisher->publish(g_collision_points);
+    }
+
+    // move new markers into g_collision_points
+    std::swap(g_collision_points.markers, markers.markers);
+
+    // draw new markers (if there are any)
+    if (!g_collision_points.markers.empty()) {
+        g_marker_array_publisher->publish(g_collision_points);
+    }
 }
 
 // Get the corners of the rectangular cross section of the pillar in the x-y-plane
@@ -296,24 +331,8 @@ collision_detection::Contact ObjectCollisionTracker::adjustContactPoint(const co
     return adjusted_contact;
 }
 
-moveit_msgs::CollisionObject ObjectCollisionTracker::createSimpleObst() {
-	geometry_msgs::Pose pose;
-	moveit_msgs::CollisionObject object;
-	object.id = "pillar";
-	object.header.frame_id = "world";
-	object.primitives.resize(1);
-	object.primitives[0].type = shape_msgs::SolidPrimitive::BOX;
-    object.primitives[0].dimensions.resize(3);
-	object.primitives[0].dimensions[0] = 0.1;
-    object.primitives[0].dimensions[1] = 0.1;
-    object.primitives[0].dimensions[2] = 0.35;
-    pose.position.x = 0.45; pose.position.y = 0.2; pose.position.z = 1.0;
-    pose.orientation.x = 0.0; pose.orientation.y = 0.0; pose.orientation.z = 0.0;
-	pose.position.z += 0.5 * object.primitives[0].dimensions[2];
-	object.primitive_poses.push_back(pose);
-    object.operation = moveit_msgs::CollisionObject::ADD;
-	return object;
-}
+// ==================================================================================================================================================
+// ==================================================================================================================================================
 
 }
 
@@ -325,33 +344,30 @@ int main(int argc, char** argv) {
 
     using Contacts = std::vector<collision_detection::Contact>;
 
-    moveit::planning_interface::PlanningSceneInterface psi;
-    moveit::planning_interface::MoveGroupInterface move_group_interface("dual_arm");
-    moveit_task_constructor_demo::ObjectCollisionTracker* objectCollisionTracker = new moveit_task_constructor_demo::ObjectCollisionTracker();
-    // Create a marker array publisher for publishing contact points
-    objectCollisionTracker->g_marker_array_publisher = new ros::Publisher(nh.advertise<visualization_msgs::MarkerArray>("interactive_robot_marray", 100));
+    // Initialize some necessary objects
+    moveit::planning_interface::MoveGroupInterface move_group_interface("dual_arm"); // To keep track of the robot state
+    moveit_task_constructor_demo::ObjectCollisionTracker* objectCollisionTracker = new moveit_task_constructor_demo::ObjectCollisionTracker(); // To use its functions
+    objectCollisionTracker->g_marker_array_publisher = new ros::Publisher(nh.advertise<visualization_msgs::MarkerArray>("interactive_robot_marray", 100)); // To publish the contact point markers
+
 
     // ============================================= Planning Scene =============================================
-    // ==========================================================================================================
-    // Create a planning scene monitor
+
+    // Create a planning scene interface for adding the obstacle and object visualization to the planning scene
+    moveit::planning_interface::PlanningSceneInterface psi;
+
+    // Create a planning scene monitor for accessing the planning scene and updating the object for collision checking
     planning_scene_monitor::PlanningSceneMonitorPtr planning_scene_monitor = std::make_shared<planning_scene_monitor::PlanningSceneMonitor>("robot_description");
     planning_scene_monitor->startSceneMonitor();
     planning_scene_monitor->startWorldGeometryMonitor(); // Include sensor updates
     planning_scene_monitor->startStateMonitor();
 
-    // =========================================== Initialize pillar ============================================
-    // ==========================================================================================================
-    // Create pillar
-    moveit_msgs::CollisionObject pillar = objectCollisionTracker->createSimpleObst();
-    // Add pillar using planning scene interface
-    psi.applyCollisionObject(pillar);
 
-    ros::Duration(1.0).sleep(); // Wait for planning scene to be updated
-    planning_scene_monitor->requestPlanningSceneState();
-    planning_scene::PlanningScenePtr planning_scene = planning_scene_monitor->getPlanningScene();
+    // ======================================== Initialize scene objects ========================================
 
-    // ========================= Initialize DLO & Object groups for collision checking ==========================
-    // ==========================================================================================================
+    // Create & initialize pillar then add i to the planning scene
+    moveit_msgs::CollisionObject pillar = objectCollisionTracker->createSimpleObst(nh);
+    psi.applyCollisionObject(pillar); // Add pillar using planning scene interface
+
     // Create a new DLO object
     moveit_msgs::CollisionObject dynamic_object;
     dynamic_object.id = "dynamic_object";
@@ -363,53 +379,59 @@ int main(int argc, char** argv) {
     object_group1.push_back(dynamic_object.id);
     object_group2.push_back(pillar.id);
 
-    // =========================================== Set object position ==========================================
-    // ==========================================================================================================
-    // Get the current state of the robot
-    robot_state::RobotStatePtr current_state = move_group_interface.getCurrentState();
+    ros::Duration(1.0).sleep(); // Wait for planning scene to be updated
+    planning_scene_monitor->requestPlanningSceneState();
+    planning_scene::PlanningScenePtr planning_scene = planning_scene_monitor->getPlanningScene();
+
+
+    // ============================================= Set object pose ============================================
     
-    // Use tip of hand instead of hand base
-    Eigen::Isometry3d tip_pose_in_hand_frame = Eigen::Isometry3d::Identity();
-    tip_pose_in_hand_frame.translation().z() = 0.116; // Franka TCP configuration // original: 0.1034
-    // Gripper tip pose of panda_1
-    Eigen::Isometry3d moving_hand_tip_iso = current_state->getGlobalLinkTransform("panda_1_hand") * tip_pose_in_hand_frame;
+    robot_state::RobotStatePtr current_state = move_group_interface.getCurrentState(); // Get the current state of the robot
+    Eigen::Isometry3d tip_pose_in_hand_frame = Eigen::Isometry3d::Identity(); // Use tip of hand instead of hand base
+    tip_pose_in_hand_frame.translation().z() = 0.116; // Franka TCP configuration. To be in between the "fingers": 0.1034, but this causes collision before we can change the allowCollisionsMatrix
+    
+    Eigen::Isometry3d moving_hand_tip_iso = current_state->getGlobalLinkTransform("panda_1_hand") * tip_pose_in_hand_frame; // Gripper tip pose of panda_1
     geometry_msgs::PoseStamped moving_hand_tip_pose = objectCollisionTracker->isometryToPoseStamped(moving_hand_tip_iso, "world");
-    // Gripper tip pose of panda_2
-    Eigen::Isometry3d steady_hand_tip_iso = current_state->getGlobalLinkTransform("panda_2_hand") * tip_pose_in_hand_frame;
+    
+    Eigen::Isometry3d steady_hand_tip_iso = current_state->getGlobalLinkTransform("panda_2_hand") * tip_pose_in_hand_frame; // Gripper tip pose of panda_2
     geometry_msgs::PoseStamped steady_hand_tip_pose = objectCollisionTracker->isometryToPoseStamped(steady_hand_tip_iso, "world");
 
-    // ==================== Add DLO object as World::Object and moveit_msgs::CollisionObject ====================
-    // ==========================================================================================================
-    objectCollisionTracker->updateObject(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object, planning_scene, psi);
-    objectCollisionTracker->initObject(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object, psi);
-    ros::Duration(1.0).sleep(); // Wait for planning scene to be updated
 
-    // ================= Test to check if pillar and DLO are both successfully added in scene  ==================
-    // ==========================================================================================================
-    //planning_scene_monitor->requestPlanningSceneState();
+    // ==================== Add DLO object as moveit_msgs::CollisionObject and World::Object ====================
+
+    objectCollisionTracker->initObject(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object, psi); // For visualization in Rviz. initObject must come before updateObject!
+    objectCollisionTracker->updateObject(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object, planning_scene, psi); // For collision checking
+    
+    ros::Duration(1.0).sleep(); // Wait period to make sure they are added
+
+
+    // ===================== Check if pillar and DLO are both successfully added in scene  ======================
+
     planning_scene_monitor::LockedPlanningSceneRO scene(planning_scene_monitor);
     if (scene->getWorld()->hasObject("pillar")) {
-        if(scene->getWorld()->hasObject("dynamic_object")) { ROS_INFO_STREAM("YES - Objects 'pillar' and 'dynamic_object' are visible in PlanningSceneMonitor!"); }
-        else { ROS_INFO_STREAM("NO/YES - Only object 'pillar' is visible in PlanningSceneMonitor!"); }
+        if(scene->getWorld()->hasObject("dynamic_object")) { 
+            ROS_INFO_STREAM("YES - Objects 'pillar' and 'dynamic_object' are visible in PlanningSceneMonitor!"); }
+        else { 
+            ROS_INFO_STREAM("NO/YES - Only object 'pillar' is visible in PlanningSceneMonitor!"); }
     }
     else { ROS_INFO_STREAM("NO - None of the objects are visible in PlanningSceneMonitor!"); }
 
-    // ========================================== First collision check =========================================
-    // ==========================================================================================================
 
-    // First collision check
+    // ====================== Declare variables for collision checking and contact points =======================
+
     objectCollisionTracker->corner_points = objectCollisionTracker->getCornerPoints(pillar);
     collision_detection::CollisionResult c_res;
     Contacts original_contacts;
     Contacts adjusted_contacts;
     bool isNewContact = false;
     int num_segments = 1;
-    //objectCollisionTracker->computeCollisionContactPoints(planning_scene, object_group1, object_group2, c_res, contacts, isNewContact);
 
-    // ====================== Loop for updating the object position and checking collisions =====================
-    // ==========================================================================================================
+
+    // ======================= Loop for updating the object pose and checking collisions ========================
+
     while (ros::ok()) {
-        c_res.clear();
+        c_res.clear(); // Clear previous collision results
+
         // Get the current state of the robot & current planning scene
         planning_scene = planning_scene_monitor->getPlanningScene();
         robot_state::RobotStatePtr current_state = move_group_interface.getCurrentState();
@@ -418,32 +440,35 @@ int main(int argc, char** argv) {
         moving_hand_tip_iso  = current_state->getGlobalLinkTransform("panda_1_hand") * tip_pose_in_hand_frame;
         moving_hand_tip_pose = objectCollisionTracker->isometryToPoseStamped(moving_hand_tip_iso, "world");
 
+        // Depending on if there are contact points: define either gripper or contact point as the start of the updated DLO section
         if(isNewContact) {
-            if (adjusted_contacts.size() >= 2) {
+            if (adjusted_contacts.size() >= 2) { // If there is a new collision point in this iteration and we already have one before this new one
+                                                 // then the starting point should be the previous contact point
                 steady_hand_tip_pose = objectCollisionTracker->vectorToPoseStamped(adjusted_contacts[adjusted_contacts.size()-2].pos);
             }
-            else {
+            else { // If we just got the first contact point, keep the starting point as the gripper tip
                 steady_hand_tip_iso  = current_state->getGlobalLinkTransform("panda_2_hand") * tip_pose_in_hand_frame;
                 steady_hand_tip_pose = objectCollisionTracker->isometryToPoseStamped(steady_hand_tip_iso, "world");
             }
         }
         else {
-            if (!adjusted_contacts.empty()) {
+            if (!adjusted_contacts.empty()) { // If we don't have a new contact, but have had some before, use the most current point as starting point
                 steady_hand_tip_pose = objectCollisionTracker->vectorToPoseStamped(adjusted_contacts[adjusted_contacts.size()-1].pos);
             }
-            else {
+            else { // If we haven't had any contact points at all, use the gripper tip as starting point
                 steady_hand_tip_iso  = current_state->getGlobalLinkTransform("panda_2_hand") * tip_pose_in_hand_frame;
                 steady_hand_tip_pose = objectCollisionTracker->isometryToPoseStamped(steady_hand_tip_iso, "world");
             }
         }
 
+        // Update the DLO according to the new starting pose, end pose and adjusted contact points
         objectCollisionTracker->updateDLO(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object, planning_scene,
                                             psi, adjusted_contacts, isNewContact, num_segments);
 
-        // Check for collisions between the object and the environment
+        // Check for collisions between the DLO and the obstacle
         objectCollisionTracker->computeCollisionContactPoints(planning_scene, object_group1, object_group2, c_res, original_contacts, adjusted_contacts, isNewContact);
         
-        ros::Duration(0.1).sleep();
+        ros::Duration(0.1).sleep(); // 0.1 sec gap between iterations
     }
     return 0;
 }

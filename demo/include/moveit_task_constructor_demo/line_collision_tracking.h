@@ -1,4 +1,5 @@
 #include <ros/ros.h>
+#include <rosparam_shortcuts/rosparam_shortcuts.h>
 
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit/move_group_interface/move_group_interface.h>
@@ -28,37 +29,18 @@ namespace moveit_task_constructor_demo {
 class ObjectCollisionTracker
 {
 public:
-    ObjectCollisionTracker();//const std::string& robot_description = "robot_description");
+    ObjectCollisionTracker();
     ~ObjectCollisionTracker() = default;
-    // /** access RobotModel */
-    // moveit::core::RobotModelPtr& robotModel() {
-    //     return robot_model_;
-    // }
-    // /** access RobotState */
-    // moveit::core::RobotStatePtr& robotState() {
-    //     return robot_state_;
-    // }
-    // class RobotLoadException : std::exception
-    // {
-    // };
-    
+
+    // Initializing
     void initObject(const geometry_msgs::PoseStamped& steady_point,
                     const geometry_msgs::PoseStamped& moving_point,
                     moveit_msgs::CollisionObject& collision_object,
                     moveit::planning_interface::PlanningSceneInterface& planning_scene_interface);
-    void updateObject2(const geometry_msgs::PoseStamped& gripper_pose,
-                        const geometry_msgs::PoseStamped& gripper_2_pose,
-                        moveit_msgs::CollisionObject& collision_object,
-                        moveit::planning_interface::PlanningSceneInterface& psi );
-    void updateObjectShape2(const geometry_msgs::PoseStamped& steady_point,
-                            const geometry_msgs::PoseStamped& moving_point,
-                            std::string& object_id,
-                            planning_scene::PlanningScenePtr planning_scene_ptr);
-    void determinePose(const geometry_msgs::PoseStamped& steady_point,
-                        const geometry_msgs::PoseStamped& moving_point,
-                        geometry_msgs::PoseStamped& result_pose_msgs,
-                        Eigen::Isometry3d& result_pose_iso,
-                        double& length);
+    moveit_msgs::CollisionObject createSimpleObst(const ros::NodeHandle& nh);
+
+
+    // Updating at each iteration
     void updateDLO(const geometry_msgs::PoseStamped&  start_pose,
                     const geometry_msgs::PoseStamped&  end_pose,
                     moveit_msgs::CollisionObject& collision_object,
@@ -72,9 +54,22 @@ public:
                         moveit_msgs::CollisionObject& collision_object,
                         planning_scene::PlanningScenePtr& planning_scene_ptr,
                         moveit::planning_interface::PlanningSceneInterface& psi) ;
-    geometry_msgs::PoseStamped vectorToPoseStamped(const Eigen::Vector3d& position);
+    
+
+
+    // Pose computations
+    void determinePose(const geometry_msgs::PoseStamped& steady_point,
+                        const geometry_msgs::PoseStamped& moving_point,
+                        geometry_msgs::PoseStamped& result_pose_msgs,
+                        Eigen::Isometry3d& result_pose_iso,
+                        double& length);
     geometry_msgs::PoseStamped isometryToPoseStamped(const Eigen::Isometry3d& transform, const std::string& frame_id);
-    void publishMarkers(visualization_msgs::MarkerArray& markers);
+    /** \brief Convert an Eigen::Vector3d into a geometry_msgs::PoseStamped. */
+    geometry_msgs::PoseStamped vectorToPoseStamped(const Eigen::Vector3d& position);
+
+
+    
+    // Computing collisions
     void computeCollisionContactPoints(planning_scene::PlanningScenePtr planning_scene_ptr,
                                         std::vector<std::string> object_group1,
                                         std::vector<std::string> object_group2,
@@ -82,30 +77,25 @@ public:
                                         std::vector<collision_detection::Contact>& stored_contacts,
                                         std::vector<collision_detection::Contact>& adjusted_contacts,
                                         bool& isNewContact);
-    moveit_msgs::CollisionObject createSimpleObst();
-    //collision_detection::Contact adjustContactPoint(const collision_detection::Contact& contact) ;
+    
+    // Handling & publishing contact points
+    void publishMarkers(visualization_msgs::MarkerArray& markers);
+    std::map<std::string, Eigen::Vector3d> getCornerPoints(const moveit_msgs::CollisionObject& pillar);
     Eigen::Vector3d determineNearestCornerPoint(const collision_detection::Contact& contact_point,
                                                 const std::map<std::string,Eigen::Vector3d>& cornerPoints);
-    std::map<std::string, Eigen::Vector3d> getCornerPoints(const moveit_msgs::CollisionObject& pillar);
     collision_detection::Contact adjustContactPoint(const collision_detection::Contact& contact_point);
-    void createPillarShape(planning_scene::PlanningScenePtr planning_scene_ptr);
-    //planning_scene::PlanningScene* g_planning_scene;
+    
 
-    int contactPointCount;
+
+
+
+    // Publisher and MArkerArray for visualization of contact points
     ros::Publisher* g_marker_array_publisher;
     visualization_msgs::MarkerArray g_collision_points;
-    std::map<std::string, Eigen::Vector3d> corner_points;
 
-private:    
-    /* marker publishers */
+    std::map<std::string, Eigen::Vector3d> corner_points; // The corner points of the obstacle
+
+private:
     ros::NodeHandle nh_;
-    // ros::Publisher robot_state_publisher_;
-    // ros::Publisher world_state_publisher_;
-
-    // /* robot info */
-    // robot_model_loader::RobotModelLoader rm_loader_;
-    // moveit::core::RobotModelPtr robot_model_;
-    // moveit::core::RobotStatePtr robot_state_;
-
 };
 }
