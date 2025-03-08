@@ -309,6 +309,13 @@ std::map<std::string, Eigen::Vector3d> ObjectCollisionTracker::getCornerPoints(c
     return corner_points;
 }
 
+collision_detection::Contact ObjectCollisionTracker::adjustContactPoint(const collision_detection::Contact& contact_point) {
+    collision_detection::Contact adjusted_contact = contact_point;
+    adjusted_contact.pos = determineNearestCornerPoint(contact_point, corner_points);
+    adjusted_contact.pos.z() = contact_point.pos.z();
+    return adjusted_contact;
+}
+
 Eigen::Vector3d ObjectCollisionTracker::determineNearestCornerPoint(const collision_detection::Contact& contact_point,
                                                                     const std::map<std::string,Eigen::Vector3d>& cornerPoints) {
     Eigen::Vector3d nearest_corner;
@@ -324,12 +331,7 @@ Eigen::Vector3d ObjectCollisionTracker::determineNearestCornerPoint(const collis
     return nearest_corner;
 }
 
-collision_detection::Contact ObjectCollisionTracker::adjustContactPoint(const collision_detection::Contact& contact_point) {
-    collision_detection::Contact adjusted_contact = contact_point;
-    adjusted_contact.pos = determineNearestCornerPoint(contact_point, corner_points);
-    adjusted_contact.pos.z() = contact_point.pos.z();
-    return adjusted_contact;
-}
+
 
 // ==================================================================================================================================================
 // ==================================================================================================================================================
