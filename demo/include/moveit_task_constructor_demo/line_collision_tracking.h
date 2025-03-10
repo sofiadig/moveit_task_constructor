@@ -37,11 +37,10 @@ public:
     /** \brief Initialize the DLO object for visualization.
      * This function establishes the shape and pose of the object and adds it to the planning scene.
      */
-    void initObject(const geometry_msgs::PoseStamped& steady_point,
-                    const geometry_msgs::PoseStamped& moving_point,
+    void initObject(const geometry_msgs::PoseStamped& start_pose, // static end
+                    const geometry_msgs::PoseStamped& end_pose,   // moving end
                     moveit_msgs::CollisionObject& collision_object,
-                    moveit::planning_interface::PlanningSceneInterface& planning_scene_interface,
-                    rviz_visual_tools::RvizVisualToolsPtr& visual_tools);
+                    moveit::planning_interface::PlanningSceneInterface& planning_scene_interface );
 
     /** \brief Initialize the object visualization. */
     moveit_msgs::CollisionObject createSimpleObstacle();
@@ -51,31 +50,31 @@ public:
      * This function determines the starting and end points for the DLO segments
      * and calls initObject() and updateObject() to implement those segments.
      */
-    void updateDLO(const geometry_msgs::PoseStamped&  start_pose,
-                    const geometry_msgs::PoseStamped&  end_pose,
+    void updateDLO(const geometry_msgs::PoseStamped&  start_pose, // static end
+                    const geometry_msgs::PoseStamped&  end_pose,  // moving end
                     moveit_msgs::CollisionObject& collision_object,
                     planning_scene::PlanningScenePtr& planning_scene_ptr,
                     moveit::planning_interface::PlanningSceneInterface& psi,
                     const std::vector<collision_detection::Contact>& adjusted_contacts,
                     const bool& hasNewContact,
-                    int& num_segments,
-                    rviz_visual_tools::RvizVisualToolsPtr& visual_tools);
+                    int& num_segments );
 
     /** \brief Update the DLO objects (collision checking and visualization).
      * This function takes the given starting and end points and updates the
      * DLO object(s) to be a straight line between the two.
      * It call determinePose() to compute the pose and dimensions for the DLO object.
+     * To visualize the object, it either applies it to the sceene as a collision
+     * object or it publishes a line marker by calling updateLineMarker().
     */
-    void updateObject(const geometry_msgs::PoseStamped&  steady_point,
-                        const geometry_msgs::PoseStamped&  moving_point,
+    void updateObject(const geometry_msgs::PoseStamped&  start_pose, // static end
+                        const geometry_msgs::PoseStamped&  end_pose, // moving end
                         moveit_msgs::CollisionObject& collision_object,
                         planning_scene::PlanningScenePtr& planning_scene_ptr,
                         moveit::planning_interface::PlanningSceneInterface& psi,
-                        int& num_segments,
-                        rviz_visual_tools::RvizVisualToolsPtr& visual_tools) ;
+                        int& num_segments ) ;
+    /** \brief Update the DLO visualization using a line marker. */
     void updateLineMarker(const geometry_msgs::Point& start,
                           const geometry_msgs::Point& end, 
-                          rviz_visual_tools::RvizVisualToolsPtr& visual_tools,
                           int marker_id);
     
 
@@ -83,8 +82,8 @@ public:
     /** \brief Compute the pose and dimensions that the DLO object needs to have
      * to be a straight line between the two given points.
      */
-    void determinePose(const geometry_msgs::PoseStamped& steady_point,
-                        const geometry_msgs::PoseStamped& moving_point,
+    void determinePose(const geometry_msgs::PoseStamped& start_pose, // static end
+                        const geometry_msgs::PoseStamped& end_pose,  // moving end
                         geometry_msgs::PoseStamped& result_pose_msgs,
                         Eigen::Isometry3d& result_pose_iso,
                         double& length);
@@ -141,18 +140,15 @@ public:
     
 
     // Publisher and MArkerArray for visualization of contact points
-    ros::Publisher* g_marker_array_publisher;
-    visualization_msgs::MarkerArray g_collision_points;
+    ros::Publisher* g_marker_array_publisher; // publishes the collision point markers
+    visualization_msgs::MarkerArray g_collision_points; // contains the collision point markers
 
-    //rviz_visual_tools::RvizVisualToolsPtr visual_tools;
+    rviz_visual_tools::RvizVisualToolsPtr visual_tools; // publish the line marker
     bool isObjectDLO; // true if visualization is supposed to be a geometry_msgs::CollisionObject
                       // false if it's supposed to be a line marker
-    static const rviz_visual_tools::colors line_marker_color = rviz_visual_tools::colors::GREEN;
-    static const rviz_visual_tools::scales line_marker_scale = rviz_visual_tools::scales::MEDIUM;
 
     std::map<std::string, Eigen::Vector3d> corner_points; // The corner points of the obstacle
 
-private:
-    ros::NodeHandle nh_;
+
 };
 }

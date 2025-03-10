@@ -215,18 +215,6 @@ bool Dlo_Collision_Handling::init() {
 	t.stages()->setName(task_name_);
 	t.loadRobotModel();
 
-	// /****************************************************
-	//  *                                                  *
-	//  *      Allow Collision (hand_1,dlo) & (hand_2,dlo) *
-	//  *                                                  *
-	//  ***************************************************/
-	// {
-	// 	auto stage = std::make_unique<stages::ModifyPlanningScene>("allow collision (hand_1,dlo)");
-	// 	stage->allowCollisions({dlo}, t.getRobotModel()->getJointModelGroup(hand_1_group_name_)->getLinkModelNamesWithCollisionGeometry(), true);
-	// 	stage->allowCollisions({dlo}, t.getRobotModel()->getJointModelGroup(hand_2_group_name_)->getLinkModelNamesWithCollisionGeometry(), true);
-	// 	t.add(std::move(stage));
-	// }
-
 	// Sampling planner
 	auto sampling_planner = std::make_shared<solvers::PipelinePlanner>();
 	sampling_planner->setProperty("goal_joint_tolerance", 1e-5);
@@ -309,25 +297,25 @@ bool Dlo_Collision_Handling::init() {
 	 *                                                  *
 	 ***************************************************/
 	{
-		auto stage = std::make_unique<stages::ModifyPlanningScene>("allow collision (hand_1,dlo)");
+		auto stage = std::make_unique<stages::ModifyPlanningScene>("allow collisions (robots <-> dlo)");
 		stage->allowCollisions({dlo}, t.getRobotModel()->getJointModelGroup(hand_1_group_name_)->getLinkModelNamesWithCollisionGeometry(),true);
 		stage->allowCollisions({dlo}, t.getRobotModel()->getJointModelGroup(arm_1_group_name_)->getLinkModelNamesWithCollisionGeometry(),true);
-		//stage->allowCollisions({dlo}, simple_obst_name_, false);
+		stage->allowCollisions({dlo}, t.getRobotModel()->getJointModelGroup(hand_2_group_name_)->getLinkModelNamesWithCollisionGeometry(),true);
+		stage->allowCollisions({dlo}, t.getRobotModel()->getJointModelGroup(arm_2_group_name_)->getLinkModelNamesWithCollisionGeometry(),true);
 		t.add(std::move(stage));
 	}
 
-	/****************************************************
-	 *                                                  *
-	 *               Allow Collision (hand_2,dlo)       *
-	 *                                                  *
-	 ***************************************************/
-	{
-		auto stage = std::make_unique<stages::ModifyPlanningScene>("allow collision (hand_2,dlo)");
-		stage->allowCollisions({dlo}, t.getRobotModel()->getJointModelGroup(hand_2_group_name_)->getLinkModelNamesWithCollisionGeometry(),true);
-		stage->allowCollisions({dlo}, t.getRobotModel()->getJointModelGroup(arm_2_group_name_)->getLinkModelNamesWithCollisionGeometry(),true);
-		//stage->allowCollisions({dlo}, simple_obst_name_, false);
-		t.add(std::move(stage));
-	}
+	// /****************************************************
+	//  *                                                  *
+	//  *               Allow Collision (hand_2,dlo)       *
+	//  *                                                  *
+	//  ***************************************************/
+	// {
+	// 	auto stage = std::make_unique<stages::ModifyPlanningScene>("allow collision (hand_2,dlo)");
+	// 	stage->allowCollisions({dlo}, t.getRobotModel()->getJointModelGroup(hand_2_group_name_)->getLinkModelNamesWithCollisionGeometry(),true);
+	// 	stage->allowCollisions({dlo}, t.getRobotModel()->getJointModelGroup(arm_2_group_name_)->getLinkModelNamesWithCollisionGeometry(),true);
+	// 	t.add(std::move(stage));
+	// }
 
 	/****************************************************
 	 *                                                  *
@@ -353,27 +341,59 @@ bool Dlo_Collision_Handling::init() {
 		t.add(std::move(stage));
 	}
 
-	// /****************************************************
-	//  *                                                  *
-	//  *          Hand_1     Move upward                *
-	//  *                                                  *
-	//  ***************************************************/
-	// {
-	// 	auto stage = std::make_unique<stages::MoveRelative>("move upward", cartesian_planner);
-	// 	stage->properties().configureInitFrom(Stage::PARENT, { "group" });
-	// 	//stage->setGroup(arm_1_group_name_);
-	// 	stage->setMinMaxDistance(0.1, 0.2);
-	// 	stage->setIKFrame(hand_1_frame_);
-	// 	stage->properties().set("marker_ns", "retreat");
-	// 	geometry_msgs::Vector3Stamped vec;
-	// 	vec.header.frame_id = world_frame_;
-	// 	vec.vector.x = 0.0;
-	// 	vec.vector.y = 0.0;
-	// 	vec.vector.z = 1.0;
-	// 	stage->setDirection(vec);
-	// 	//move_forward_stage_ptr = stage.get();
-	// 	t.add(std::move(stage));
-	// }
+	/****************************************************
+	 *                                                  *
+	 *          Hand_1     Move inward                  *
+	 *                                                  *
+	 ***************************************************/
+	{
+		auto stage = std::make_unique<stages::MoveRelative>("move inward", cartesian_planner);
+		//stage->properties().configureInitFrom(Stage::PARENT, { "group" });
+		stage->setGroup(arm_1_group_name_);
+		stage->setMinMaxDistance(0.1, 0.2);
+		stage->setIKFrame(hand_1_frame_);
+		stage->properties().set("marker_ns", "retreat");
+		geometry_msgs::Vector3Stamped vec;
+		vec.header.frame_id = world_frame_;
+		vec.vector.x = 0.0;
+		vec.vector.y = 0.0;
+		vec.vector.z = 1.0;
+		stage->setDirection(vec);
+		//move_forward_stage_ptr = stage.get();
+		t.add(std::move(stage));
+
+
+		// Create grasp pose
+			geometry_msgs::PoseStamped hand_center_pose;
+			// Position
+			hand_center_pose.header.frame_id = object_reference_frame_;
+			hand_center_pose.pose.position.x = 0.6;
+			hand_center_pose.pose.position.y = 0.5;
+			hand_center_pose.pose.position.z = 1.1;
+			hand_center_pose.pose.position.z += 0.2 * object_dimensions_[0] + place_surface_offset_;
+
+			// Orientation
+			tf2::Quaternion orientation;
+			orientation.setRPY(0, 0, 0);
+			hand_center_pose.pose.orientation = tf2::toMsg(orientation);
+			
+			// Add fixed pose as stage
+			auto stage = std::make_unique<stages::FixedCartesianPoses>("hand 1 center pose");
+			//stage->properties().configureInitFrom(Stage::PARENT);
+			stage->setGroup(arm_2_group_name_);
+			stage->properties().set("marker_ns", "grasp_pose");
+			stage->addPose(hand_center_pose);
+			stage->setMonitoredStage(initial_state_ptr);
+			
+			// Compute IK
+			auto wrapper = std::make_unique<stages::ComputeIK>("center pose IK", std::move(stage));
+			wrapper->setMaxIKSolutions(8);
+			wrapper->setMinSolutionDistance(1.0);
+			wrapper->setIKFrame(grasp_frame_transform_, hand_1_frame_);
+			wrapper->properties().configureInitFrom(Stage::PARENT, { "eef", "group" });
+			wrapper->properties().configureInitFrom(Stage::INTERFACE, { "target_pose" });
+			grasp->insert(std::move(wrapper));
+	}
 
 	/******************************************************
 	//  *                                                    *

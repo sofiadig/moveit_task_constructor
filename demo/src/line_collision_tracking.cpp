@@ -3,6 +3,8 @@
 namespace moveit_task_constructor_demo {
 
 ObjectCollisionTracker::ObjectCollisionTracker() {
+    visual_tools.reset(new rviz_visual_tools::RvizVisualTools("world", "/interactive_robot_marray"));
+    visual_tools->loadMarkerPub();
     g_marker_array_publisher = nullptr;
     isObjectDLO = false; // false: line marker, true: object
 }
@@ -11,15 +13,15 @@ ObjectCollisionTracker::ObjectCollisionTracker() {
 // ========================== 1. Initializing =======================================================================================================
 // ==================================================================================================================================================
 
-void ObjectCollisionTracker::initObject(const geometry_msgs::PoseStamped& steady_point,
-                                const geometry_msgs::PoseStamped& moving_point,
+void ObjectCollisionTracker::initObject(const geometry_msgs::PoseStamped& start_pose,
+                                const geometry_msgs::PoseStamped& end_pose,
                                 moveit_msgs::CollisionObject& collision_object,
-                                moveit::planning_interface::PlanningSceneInterface& planning_scene_interface,
-                                rviz_visual_tools::RvizVisualToolsPtr& visual_tools ) {
+                                moveit::planning_interface::PlanningSceneInterface& planning_scene_interface ) {
     geometry_msgs::PoseStamped result_pose_msgs;
     Eigen::Isometry3d result_pose_iso;
     double length;
-    determinePose(steady_point, moving_point, result_pose_msgs, result_pose_iso, length);
+    int num_segments = 1;
+    determinePose(start_pose, end_pose, result_pose_msgs, result_pose_iso, length);
     
     if (isObjectDLO) {
         shape_msgs::SolidPrimitive primitive;
@@ -35,8 +37,7 @@ void ObjectCollisionTracker::initObject(const geometry_msgs::PoseStamped& steady
         planning_scene_interface.applyCollisionObject(collision_object);
     }
     else {
-        visual_tools->publishLine(steady_point.pose.position, moving_point.pose.position, line_marker_color, line_marker_scale);
-        visual_tools->trigger();
+        updateLineMarker(start_pose.pose.position, end_pose.pose.position, num_segments);
     }
 }
 
@@ -76,8 +77,7 @@ void ObjectCollisionTracker::updateDLO(const geometry_msgs::PoseStamped&  start_
                                     moveit::planning_interface::PlanningSceneInterface& psi,
                                     const std::vector<collision_detection::Contact>& adjusted_contacts,
                                     const bool& hasNewContact,
-                                    int& num_segments,
-                                    rviz_visual_tools::RvizVisualToolsPtr& visual_tools) {
+                                    int& num_segments) {
     geometry_msgs::PoseStamped contactPos;
     if (!adjusted_contacts.empty()) {
         contactPos = vectorToPoseStamped(adjusted_contacts[adjusted_contacts.size()-1].pos);
@@ -93,32 +93,29 @@ void ObjectCollisionTracker::updateDLO(const geometry_msgs::PoseStamped&  start_
             std::string segment_name = "segment_" + std::to_string(num_segments);
             first_segment.id = segment_name;
             first_segment.header.frame_id = "world";
-            initObject(start_pose, contactPos, first_segment, psi, visual_tools);
+            initObject(start_pose, contactPos, first_segment, psi);
             num_segments++;
         }
         else {
-            updateLineMarker(start_pose.pose.position, contactPos.pose.position, visual_tools, num_segments);
+            updateLineMarker(start_pose.pose.position, contactPos.pose.position, num_segments);
             num_segments++;
-            // visual_tools->publishLine(start_pose.pose.position, contactPos.pose.position, line_marker_color, line_marker_scale);
-            // visual_tools->trigger();
         }
     }
     // 2. Set the start pose of the second line as the contact point, end pose stays the same
-    updateObject(contactPos, end_pose, collision_object, planning_scene_ptr, psi, num_segments, visual_tools);
+    updateObject(contactPos, end_pose, collision_object, planning_scene_ptr, psi, num_segments);
 }
 
-void ObjectCollisionTracker::updateObject(const geometry_msgs::PoseStamped&  steady_point,
-                                const geometry_msgs::PoseStamped&  moving_point,
+void ObjectCollisionTracker::updateObject(const geometry_msgs::PoseStamped&  start_pose,
+                                const geometry_msgs::PoseStamped&  end_pose,
                                 moveit_msgs::CollisionObject& collision_object,
                                 planning_scene::PlanningScenePtr& planning_scene_ptr,
                                 moveit::planning_interface::PlanningSceneInterface& psi,
-                                int& num_segments,
-                                rviz_visual_tools::RvizVisualToolsPtr& visual_tools) {
+                                int& num_segments ) {
     geometry_msgs::PoseStamped result_pose_msgs;
     Eigen::Isometry3d cylinder_pose;
     double cylinder_length;
     double cylinder_radius = 0.005;
-    determinePose(steady_point, moving_point, result_pose_msgs, cylinder_pose, cylinder_length);
+    determinePose(start_pose, end_pose, result_pose_msgs, cylinder_pose, cylinder_length);
     
     shapes::ShapePtr cylinder_shape(new shapes::Cylinder(cylinder_radius, cylinder_length));
     planning_scene_ptr->getWorldNonConst()->addToObject(collision_object.id, cylinder_shape, cylinder_pose);
@@ -130,15 +127,12 @@ void ObjectCollisionTracker::updateObject(const geometry_msgs::PoseStamped&  ste
         psi.applyCollisionObject(collision_object);
     }
     else {
-        updateLineMarker(steady_point.pose.position, moving_point.pose.position,visual_tools,num_segments);
-        // visual_tools->publishLine(steady_point.pose.position, moving_point.pose.position, line_marker_color, line_marker_scale);
-        // visual_tools->trigger();
+        updateLineMarker(start_pose.pose.position, end_pose.pose.position, num_segments);
     }
 }
 
 void ObjectCollisionTracker::updateLineMarker(const geometry_msgs::Point& start,
-                                              const geometry_msgs::Point& end, 
-                                              rviz_visual_tools::RvizVisualToolsPtr& visual_tools,
+                                              const geometry_msgs::Point& end,
                                               int marker_id) {
     visualization_msgs::Marker line_marker;
     line_marker.header.frame_id = "world";
@@ -171,14 +165,14 @@ void ObjectCollisionTracker::updateLineMarker(const geometry_msgs::Point& start,
 // ========================== 3. Pose computations ==================================================================================================
 // ==================================================================================================================================================
 
-void ObjectCollisionTracker::determinePose(const geometry_msgs::PoseStamped& steady_point,
-                                            const geometry_msgs::PoseStamped& moving_point,
+void ObjectCollisionTracker::determinePose(const geometry_msgs::PoseStamped& start_pose,
+                                            const geometry_msgs::PoseStamped& end_pose,
                                             geometry_msgs::PoseStamped& result_pose_msgs,
                                             Eigen::Isometry3d& result_pose_iso,
                                             double& length) {
     // Define the start & end point
-    geometry_msgs::Point start_point = steady_point.pose.position;
-    geometry_msgs::Point end_point = moving_point.pose.position;
+    geometry_msgs::Point start_point = start_pose.pose.position;
+    geometry_msgs::Point end_point = end_pose.pose.position;
 
     length = sqrt(pow(end_point.x - start_point.x, 2) +
                   pow(end_point.y - start_point.y, 2) +
@@ -253,7 +247,7 @@ void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::Plann
                                                             std::vector<collision_detection::Contact>& adjusted_contacts,
                                                             bool& hasNewContact) {
     hasNewContact = false;
-    // Suppress std::cout
+    // Suppress std::cout (because each collision check prints quite a few lines which clogs up the console)
     std::ofstream null_stream("/dev/null");
     std::streambuf* cout_buffer = std::cout.rdbuf(nullptr);  // Save original buffer (to nullptr aka dont save)
     std::cout.rdbuf(null_stream.rdbuf());  // Redirect std::cout to null
@@ -408,13 +402,6 @@ int main(int argc, char** argv) {
     moveit_task_constructor_demo::ObjectCollisionTracker* objectCollisionTracker = new moveit_task_constructor_demo::ObjectCollisionTracker(); // To use its functions
     objectCollisionTracker->g_marker_array_publisher = new ros::Publisher(nh.advertise<visualization_msgs::MarkerArray>("interactive_robot_marray", 100)); // To publish the contact point markers
 
-    // initialize rviz visual tool for DLO line marker visualization
-    rviz_visual_tools::RvizVisualToolsPtr visual_tools(new rviz_visual_tools::RvizVisualTools("world", "/interactive_robot_marray"));
-    visual_tools->loadMarkerPub();
-    visual_tools->setLifetime(0.5);
-    ros::Publisher line_marker_pub = nh.advertise<visualization_msgs::Marker>("visualization_marker", 10);
-    // rviz_visual_tools::colors line_marker_color = rviz_visual_tools::colors::RED;
-    // rviz_visual_tools::scales line_marker_scale = rviz_visual_tools::scales::MEDIUM;
 
     // ============================================= Planning Scene =============================================
 
@@ -424,7 +411,7 @@ int main(int argc, char** argv) {
     // Create a planning scene monitor for accessing the planning scene and updating the object for collision checking
     planning_scene_monitor::PlanningSceneMonitorPtr planning_scene_monitor = std::make_shared<planning_scene_monitor::PlanningSceneMonitor>("robot_description");
     planning_scene_monitor->startSceneMonitor();
-    planning_scene_monitor->startWorldGeometryMonitor(); // Include sensor updates
+    planning_scene_monitor->startWorldGeometryMonitor();
     planning_scene_monitor->startStateMonitor();
 
 
@@ -445,19 +432,19 @@ int main(int argc, char** argv) {
     object_group1.push_back(dynamic_object.id);
     object_group2.push_back(pillar.id);
 
-    ros::Duration(1.0).sleep(); // Wait for planning scene to be updated
+    //ros::Duration(1.0).sleep(); // Wait for planning scene to be updated
     planning_scene_monitor->requestPlanningSceneState();
     planning_scene::PlanningScenePtr planning_scene = planning_scene_monitor->getPlanningScene();
 
 
     // ====================== Declare variables for collision checking and contact points =======================
 
-    objectCollisionTracker->corner_points = objectCollisionTracker->getCornerPoints(pillar);
+    objectCollisionTracker->corner_points = objectCollisionTracker->getCornerPoints(pillar); // Determine the corner points of the obstacle
     collision_detection::CollisionResult c_res;
-    Contacts original_contacts;
-    Contacts adjusted_contacts;
-    bool hasNewContact = false;
-    int num_segments = 1;
+    Contacts original_contacts; // Stores the contact points in the location where they are detected
+    Contacts adjusted_contacts; // Stores the contact points after projecting them to the edges of the obstacle
+    bool hasNewContact = false; // Becomes true when a new contact is added in an iteration
+    int num_segments = 1; // Count of the segments between contact points / robot grippers
 
 
     // ============================================= Set object pose ============================================
@@ -475,10 +462,10 @@ int main(int argc, char** argv) {
 
     // ==================== Add DLO object as moveit_msgs::CollisionObject and World::Object ====================
 
-    objectCollisionTracker->initObject(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object, psi, visual_tools); // For visualization in Rviz. initObject must come before updateObject!
-    objectCollisionTracker->updateObject(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object, planning_scene, psi, num_segments, visual_tools); // For collision checking
+    objectCollisionTracker->initObject(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object, psi); // For visualization in Rviz. initObject must come before updateObject!
+    objectCollisionTracker->updateObject(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object, planning_scene, psi, num_segments); // For collision checking
     
-    ros::Duration(1.0).sleep(); // Wait period to make sure they are added
+    ros::Duration(0.5).sleep(); // Wait period to make sure they are added
 
 
     // ===================== Check if pillar and DLO are both successfully added in scene  ======================
@@ -486,11 +473,11 @@ int main(int argc, char** argv) {
     planning_scene_monitor::LockedPlanningSceneRO scene(planning_scene_monitor);
     if (scene->getWorld()->hasObject("pillar")) {
         if(scene->getWorld()->hasObject("dynamic_object")) { 
-            ROS_INFO_STREAM("YES - Objects 'pillar' and 'dynamic_object' are visible in PlanningSceneMonitor!"); }
+            ROS_INFO_STREAM("Objects 'pillar' and 'dynamic_object' are visible in PlanningSceneMonitor!"); }
         else { 
-            ROS_INFO_STREAM("NO/YES - Only object 'pillar' is visible in PlanningSceneMonitor!"); }
+            ROS_WARN_STREAM("Only object 'pillar' is visible in PlanningSceneMonitor. DLO isn't visible!"); }
     }
-    else { ROS_INFO_STREAM("NO - None of the objects are visible in PlanningSceneMonitor!"); }
+    else { ROS_WARN_STREAM("The object(s) are not visible in PlanningSceneMonitor!"); }
 
 
     // ======================= Loop for updating the object pose and checking collisions ========================
@@ -529,7 +516,7 @@ int main(int argc, char** argv) {
 
         // Update the DLO according to the new starting pose, end pose and adjusted contact points
         objectCollisionTracker->updateDLO(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object, planning_scene,
-                                            psi, adjusted_contacts, hasNewContact, num_segments, visual_tools);
+                                            psi, adjusted_contacts, hasNewContact, num_segments);
 
         // Check for collisions between the DLO and the obstacle
         objectCollisionTracker->computeCollisionContactPoints(planning_scene, object_group1, object_group2, c_res, original_contacts, adjusted_contacts, hasNewContact);
