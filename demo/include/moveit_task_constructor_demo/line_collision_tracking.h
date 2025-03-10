@@ -12,6 +12,8 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_listener.h>
 #include <moveit_msgs/CollisionObject.h>
+#include <rviz_visual_tools/rviz_visual_tools.h>
+#include <moveit_visual_tools/moveit_visual_tools.h>
 // MoveIt
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>
@@ -38,10 +40,11 @@ public:
     void initObject(const geometry_msgs::PoseStamped& steady_point,
                     const geometry_msgs::PoseStamped& moving_point,
                     moveit_msgs::CollisionObject& collision_object,
-                    moveit::planning_interface::PlanningSceneInterface& planning_scene_interface);
+                    moveit::planning_interface::PlanningSceneInterface& planning_scene_interface,
+                    rviz_visual_tools::RvizVisualToolsPtr& visual_tools);
 
     /** \brief Initialize the object visualization. */
-    moveit_msgs::CollisionObject createSimpleObst(const ros::NodeHandle& nh);
+    moveit_msgs::CollisionObject createSimpleObstacle();
 
 
     /** \brief Update the DLO objects (collision checking and visualization).
@@ -54,8 +57,9 @@ public:
                     planning_scene::PlanningScenePtr& planning_scene_ptr,
                     moveit::planning_interface::PlanningSceneInterface& psi,
                     const std::vector<collision_detection::Contact>& adjusted_contacts,
-                    bool& hasNewContact,
-                    int& num_segments);
+                    const bool& hasNewContact,
+                    int& num_segments,
+                    rviz_visual_tools::RvizVisualToolsPtr& visual_tools);
 
     /** \brief Update the DLO objects (collision checking and visualization).
      * This function takes the given starting and end points and updates the
@@ -66,7 +70,13 @@ public:
                         const geometry_msgs::PoseStamped&  moving_point,
                         moveit_msgs::CollisionObject& collision_object,
                         planning_scene::PlanningScenePtr& planning_scene_ptr,
-                        moveit::planning_interface::PlanningSceneInterface& psi) ;
+                        moveit::planning_interface::PlanningSceneInterface& psi,
+                        int& num_segments,
+                        rviz_visual_tools::RvizVisualToolsPtr& visual_tools) ;
+    void updateLineMarker(const geometry_msgs::Point& start,
+                          const geometry_msgs::Point& end, 
+                          rviz_visual_tools::RvizVisualToolsPtr& visual_tools,
+                          int marker_id);
     
 
 
@@ -133,6 +143,12 @@ public:
     // Publisher and MArkerArray for visualization of contact points
     ros::Publisher* g_marker_array_publisher;
     visualization_msgs::MarkerArray g_collision_points;
+
+    //rviz_visual_tools::RvizVisualToolsPtr visual_tools;
+    bool isObjectDLO; // true if visualization is supposed to be a geometry_msgs::CollisionObject
+                      // false if it's supposed to be a line marker
+    static const rviz_visual_tools::colors line_marker_color = rviz_visual_tools::colors::GREEN;
+    static const rviz_visual_tools::scales line_marker_scale = rviz_visual_tools::scales::MEDIUM;
 
     std::map<std::string, Eigen::Vector3d> corner_points; // The corner points of the obstacle
 

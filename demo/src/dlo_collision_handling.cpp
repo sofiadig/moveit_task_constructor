@@ -234,7 +234,7 @@ bool Dlo_Collision_Handling::init() {
 	// Cartesian planner
 	auto cartesian_planner = std::make_shared<solvers::CartesianPath>();
 	cartesian_planner->setMaxVelocityScalingFactor(0.3);
-	cartesian_planner->setMaxAccelerationScalingFactor(0.7);
+	cartesian_planner->setMaxAccelerationScalingFactor(0.3);
 	cartesian_planner->setStepSize(.01);
 
 	// Set task properties
@@ -398,7 +398,7 @@ bool Dlo_Collision_Handling::init() {
 	 *          Hand_1     Move forward                 *
 	 *                                                  *
 	 ***************************************************/
-	Stage* move_forward_stage_ptr = nullptr;
+	//Stage* move_forward_stage_ptr = nullptr;
 	{
 		auto stage = std::make_unique<stages::MoveRelative>("move forward", cartesian_planner);
 		stage->properties().configureInitFrom(Stage::PARENT, { "group" });
@@ -411,7 +411,7 @@ bool Dlo_Collision_Handling::init() {
 		vec.vector.x = 0.66;
 		vec.vector.y = -0.1;
 		stage->setDirection(vec);
-		move_forward_stage_ptr = stage.get();
+		//move_forward_stage_ptr = stage.get();
 		t.add(std::move(stage));
 	}
 
