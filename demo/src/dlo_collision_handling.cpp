@@ -199,6 +199,12 @@ void Dlo_Collision_Handling::loadParameters() {
 	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "place_surface_offset", place_surface_offset_);
 	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "place_pose", place_pose_);
 	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "up_pose", up_pose_);
+
+	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "center_pose_1", center_pose_1_);
+	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "center_pose_2", center_pose_2_);
+	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "min_distance", min_distance_);
+	errors += !rosparam_shortcuts::get(LOGNAME, pnh_, "max_distance", max_distance_);
+
 	rosparam_shortcuts::shutdownIfError(LOGNAME, errors);
 }
 
@@ -221,8 +227,8 @@ bool Dlo_Collision_Handling::init() {
 
 	// Cartesian planner
 	auto cartesian_planner = std::make_shared<solvers::CartesianPath>();
-	cartesian_planner->setMaxVelocityScalingFactor(0.3);
-	cartesian_planner->setMaxAccelerationScalingFactor(0.3);
+	cartesian_planner->setMaxVelocityScalingFactor(0.1);
+	cartesian_planner->setMaxAccelerationScalingFactor(0.1);
 	cartesian_planner->setStepSize(.01);
 
 	// Set task properties
@@ -293,7 +299,7 @@ bool Dlo_Collision_Handling::init() {
 
 	/****************************************************
 	 *                                                  *
-	 *               Allow Collision (hand_1,dlo)       *
+	 *               Allow Collision (robots,dlo)       *
 	 *                                                  *
 	 ***************************************************/
 	{
@@ -322,66 +328,87 @@ bool Dlo_Collision_Handling::init() {
 	 *              Close hand                          *
 	 *                                                  *
 	 ***************************************************/
+	Stage* initial_state_ptr = nullptr;
 	{
 		auto stage = std::make_unique<stages::MoveTo>("close hand_1", sampling_planner);
 		stage->setGroup(hand_1_group_name_);
 		stage->setGoal(hand_1_close_pose_);
+		// initial_state_ptr = stage.get();
 		t.add(std::move(stage));
 	}
 
+
 	/****************************************************
 	 *                                                  *
-	 *              Close hand                          *
+	 *              Close hand 2                        *
 	 *                                                  *
 	 ***************************************************/
 	{
 		auto stage = std::make_unique<stages::MoveTo>("close hand_2", sampling_planner);
 		stage->setGroup(hand_2_group_name_);
 		stage->setGoal(hand_2_close_pose_);
+		initial_state_ptr = stage.get();
+		t.add(std::move(stage));
+	}
+
+
+	/****************************************************
+	 *                                                  *
+	 *        Connect Hand_1 movement to Hand_2         *
+	 *                                                  *
+	 ***************************************************/
+	{  // Move-to pre-grasp
+		auto stage = std::make_unique<stages::Connect>(
+		    "connect hand_1 and hand_2", stages::Connect::GroupPlannerVector{ { arm_2_group_name_, sampling_planner }});
+		stage->setTimeout(5.0);
+		//stage->properties().configureInitFrom(Stage::PARENT);
+		stage->setProperty("group", arm_2_group_name_);
+		stage->setProperty("eef", eef_2_name_);
+		stage->setProperty("hand", hand_2_group_name_);
+		stage->setProperty("ik_frame", hand_2_frame_);
 		t.add(std::move(stage));
 	}
 
 	/****************************************************
 	 *                                                  *
-	 *          Hand_1     Move inward                  *
+	 *          Hand_2     Move inward                  *
 	 *                                                  *
 	 ***************************************************/
+	Stage* hand_2_prep_ptr = nullptr;
 	{
-		auto stage = std::make_unique<stages::MoveRelative>("move inward", cartesian_planner);
-		//stage->properties().configureInitFrom(Stage::PARENT, { "group" });
-		stage->setGroup(arm_1_group_name_);
-		stage->setMinMaxDistance(0.1, 0.2);
-		stage->setIKFrame(hand_1_frame_);
-		stage->properties().set("marker_ns", "retreat");
-		geometry_msgs::Vector3Stamped vec;
-		vec.header.frame_id = world_frame_;
-		vec.vector.x = 0.0;
-		vec.vector.y = 0.0;
-		vec.vector.z = 1.0;
-		stage->setDirection(vec);
-		//move_forward_stage_ptr = stage.get();
-		t.add(std::move(stage));
+		auto prep = std::make_unique<SerialContainer>("prep hand_2");
+		//t.properties().exposeTo(grasp->properties(), { "eef", "hand", "group", "ik_frame" });
+		//grasp->properties().configureInitFrom(Stage::PARENT, { "eef", "hand", "group", "ik_frame" });
+		prep->setProperty("group", arm_2_group_name_);
+		prep->setProperty("eef", eef_2_name_);
+		prep->setProperty("hand", hand_2_group_name_);
+		prep->setProperty("ik_frame", hand_2_frame_);
 
+		
 
-		// Create grasp pose
+		/****************************************************
+  ---- *               Approach Object                      *
+		 ***************************************************/
+		{
+			// Create grasp pose
 			geometry_msgs::PoseStamped hand_center_pose;
 			// Position
 			hand_center_pose.header.frame_id = object_reference_frame_;
-			hand_center_pose.pose.position.x = 0.6;
-			hand_center_pose.pose.position.y = 0.5;
-			hand_center_pose.pose.position.z = 1.1;
-			hand_center_pose.pose.position.z += 0.2 * object_dimensions_[0] + place_surface_offset_;
+			// hand_center_pose.pose.position = center_pose_1_.position;
+			hand_center_pose.pose.position.x = center_pose_1_[0];
+			hand_center_pose.pose.position.y = center_pose_1_[1];
+			hand_center_pose.pose.position.z = center_pose_1_[2];
 
 			// Orientation
 			tf2::Quaternion orientation;
-			orientation.setRPY(0, 0, 0);
+			orientation.setRPY(M_PI, 0.0, -M_PI/4);
 			hand_center_pose.pose.orientation = tf2::toMsg(orientation);
 			
 			// Add fixed pose as stage
-			auto stage = std::make_unique<stages::FixedCartesianPoses>("hand 1 center pose");
-			//stage->properties().configureInitFrom(Stage::PARENT);
-			stage->setGroup(arm_2_group_name_);
-			stage->properties().set("marker_ns", "grasp_pose");
+			auto stage = std::make_unique<stages::FixedCartesianPoses>("hand 2 center pose");
+			stage->properties().configureInitFrom(Stage::PARENT);
+			//stage->setGroup(arm_2_group_name_);
+			stage->properties().set("marker_ns", "hand_center_pose");
 			stage->addPose(hand_center_pose);
 			stage->setMonitoredStage(initial_state_ptr);
 			
@@ -389,10 +416,15 @@ bool Dlo_Collision_Handling::init() {
 			auto wrapper = std::make_unique<stages::ComputeIK>("center pose IK", std::move(stage));
 			wrapper->setMaxIKSolutions(8);
 			wrapper->setMinSolutionDistance(1.0);
-			wrapper->setIKFrame(grasp_frame_transform_, hand_1_frame_);
+			wrapper->setIKFrame(hand_2_frame_);
 			wrapper->properties().configureInitFrom(Stage::PARENT, { "eef", "group" });
 			wrapper->properties().configureInitFrom(Stage::INTERFACE, { "target_pose" });
-			grasp->insert(std::move(wrapper));
+			prep->insert(std::move(wrapper));
+		}
+		hand_2_prep_ptr = prep.get();  // remember for monitoring hold pose generator
+
+		// Add grasp container to task
+		t.add(std::move(prep));
 	}
 
 	/******************************************************
@@ -413,26 +445,77 @@ bool Dlo_Collision_Handling::init() {
 	// 	stage->restrictDirection(stages::MoveTo::FORWARD);
 	// 	t.add(std::move(stage));
 	// }
+
 	/****************************************************
 	 *                                                  *
-	 *          Hand_1     Move forward                 *
+	 *      Connect Hand_1 movement to Hand_2           *
 	 *                                                  *
 	 ***************************************************/
-	//Stage* move_forward_stage_ptr = nullptr;
-	{
-		auto stage = std::make_unique<stages::MoveRelative>("move forward", cartesian_planner);
-		stage->properties().configureInitFrom(Stage::PARENT, { "group" });
-		//stage->setGroup(arm_1_group_name_);
-		stage->setMinMaxDistance(.15, 0.2);
-		stage->setIKFrame(hand_1_frame_);
-		stage->properties().set("marker_ns", "retreat");
-		geometry_msgs::Vector3Stamped vec;
-		vec.header.frame_id = world_frame_;
-		vec.vector.x = 0.66;
-		vec.vector.y = -0.1;
-		stage->setDirection(vec);
-		//move_forward_stage_ptr = stage.get();
+	{  // Move-to pre-grasp
+		auto stage = std::make_unique<stages::Connect>(
+		    "connect hand_2 and hand_1", stages::Connect::GroupPlannerVector{ { arm_1_group_name_, sampling_planner } });
+		stage->setTimeout(5.0);
+		stage->properties().configureInitFrom(Stage::PARENT);
 		t.add(std::move(stage));
+	}
+
+
+	/****************************************************
+	 *                                                  *
+	 *          Hand_2     Move inward                  *
+	 *                                                  *
+	 ***************************************************/
+	//Stage* hand_2_prep_ptr = nullptr;
+	{
+		auto prep = std::make_unique<SerialContainer>("hand_1 sideways");
+		//t.properties().exposeTo(grasp->properties(), { "eef", "hand", "group", "ik_frame" });
+		//grasp->properties().configureInitFrom(Stage::PARENT, { "eef", "hand", "group", "ik_frame" });
+		prep->setProperty("group", arm_1_group_name_);
+		prep->setProperty("eef", eef_1_name_);
+		prep->setProperty("hand", hand_1_group_name_);
+		prep->setProperty("ik_frame", hand_1_frame_);
+
+		
+
+		/****************************************************
+  ---- *               Approach Object                      *
+		 ***************************************************/
+		{
+			// Create grasp pose
+			geometry_msgs::PoseStamped hand_center_pose;
+			// Position
+			hand_center_pose.header.frame_id = object_reference_frame_;
+			// hand_center_pose.pose.position = center_pose_1_.position;
+			hand_center_pose.pose.position.x = center_pose_2_[0];
+			hand_center_pose.pose.position.y = center_pose_2_[1];
+			hand_center_pose.pose.position.z = center_pose_2_[2];
+
+			// Orientation
+			tf2::Quaternion orientation;
+			orientation.setRPY(M_PI, 0.0, -M_PI/4);
+			hand_center_pose.pose.orientation = tf2::toMsg(orientation);
+			
+			// Add fixed pose as stage
+			auto stage = std::make_unique<stages::FixedCartesianPoses>("hand 1 center pose");
+			stage->properties().configureInitFrom(Stage::PARENT);
+			//stage->setGroup(arm_2_group_name_);
+			stage->properties().set("marker_ns", "hand_center_pose");
+			stage->addPose(hand_center_pose);
+			stage->setMonitoredStage(hand_2_prep_ptr);
+			
+			// Compute IK
+			auto wrapper = std::make_unique<stages::ComputeIK>("center pose IK", std::move(stage));
+			wrapper->setMaxIKSolutions(8);
+			wrapper->setMinSolutionDistance(1.0);
+			wrapper->setIKFrame(hand_1_frame_);
+			wrapper->properties().configureInitFrom(Stage::PARENT, { "eef", "group" });
+			wrapper->properties().configureInitFrom(Stage::INTERFACE, { "target_pose" });
+			prep->insert(std::move(wrapper));
+		}
+		hand_2_prep_ptr = prep.get();  // remember for monitoring hold pose generator
+
+		// Add grasp container to task
+		t.add(std::move(prep));
 	}
 
 	/****************************************************
@@ -440,27 +523,72 @@ bool Dlo_Collision_Handling::init() {
 	 *          Hand_1     Move sideways                *
 	 *                                                  *
 	 ***************************************************/
+	//Stage* move_forward_stage_ptr = nullptr;
 	{
 		auto stage = std::make_unique<stages::MoveRelative>("move sideways", cartesian_planner);
 		stage->properties().configureInitFrom(Stage::PARENT, { "group" });
 		//stage->setGroup(arm_1_group_name_);
-		stage->setMinMaxDistance(0.2, 0.8);
+		stage->setMinMaxDistance(0.3, 0.4);
 		stage->setIKFrame(hand_1_frame_);
 		stage->properties().set("marker_ns", "retreat");
 		geometry_msgs::Vector3Stamped vec;
 		vec.header.frame_id = world_frame_;
-		vec.vector.x = 0.0;
+		//vec.vector.x = 0.1;
 		vec.vector.y = -1.0;
 		stage->setDirection(vec);
-		//move_forward_stage_ptr = stage.get();
+		//hand_2_prep_ptr = stage.get();
 		t.add(std::move(stage));
 	}
 
-	/******************************************************
-	 *                                                    *
-	 *          Connect the two stages                    *
-	 *                                                    *
-	 *****************************************************/
+	/****************************************************
+	 *                                                  *
+	 *          Hand_1     Move backward                *
+	 *                                                  *
+	 ***************************************************/
+	//Stage* move_forward_stage_ptr = nullptr;
+	{
+		auto stage = std::make_unique<stages::MoveRelative>("move backward", cartesian_planner);
+		stage->properties().configureInitFrom(Stage::PARENT, { "group" });
+		//stage->setGroup(arm_1_group_name_);
+		stage->setMinMaxDistance(0.3, 0.4);
+		stage->setIKFrame(hand_1_frame_);
+		stage->properties().set("marker_ns", "retreat");
+		geometry_msgs::Vector3Stamped vec;
+		vec.header.frame_id = world_frame_;
+		vec.vector.x = -1.0;
+		vec.vector.z = 0.05;
+		stage->setDirection(vec);
+		//hand_2_prep_ptr = stage.get();
+		t.add(std::move(stage));
+	}
+
+
+	// /****************************************************
+	//  *                                                  *
+	//  *          Hand_1     Move sideways                *
+	//  *                                                  *
+	//  ***************************************************/
+	// {
+	// 	auto stage = std::make_unique<stages::MoveRelative>("move sideways", cartesian_planner);
+	// 	stage->properties().configureInitFrom(Stage::PARENT, { "group" });
+	// 	//stage->setGroup(arm_1_group_name_);
+	// 	stage->setMinMaxDistance(0.3, 0.5);
+	// 	stage->setIKFrame(hand_1_frame_);
+	// 	stage->properties().set("marker_ns", "retreat");
+	// 	geometry_msgs::Vector3Stamped vec;
+	// 	vec.header.frame_id = world_frame_;
+	// 	//vec.vector.x = 0.0;
+	// 	vec.vector.y = -1.0;
+	// 	stage->setDirection(vec);
+	// 	move_forward_stage_ptr = stage.get();
+	// 	t.add(std::move(stage));
+	// }
+
+	// /******************************************************
+	//  *                                                    *
+	//  *          Connect the two stages                    *
+	//  *                                                    *
+	//  *****************************************************/
 	// {
 	// 	auto stage = std::make_unique<stages::Connect>("connect to hand_2 stage", stages::Connect::GroupPlannerVector{
 	// 		{ arm_1_group_name_, sampling_planner }, { arm_2_group_name_, sampling_planner } });

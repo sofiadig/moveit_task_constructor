@@ -54,7 +54,7 @@ moveit_msgs::CollisionObject ObjectCollisionTracker::createSimpleObstacle() {
     object.primitives[0].dimensions[1] = 0.1;
     object.primitives[0].dimensions[2] = 0.35;
     pose.position.x = 0.45;
-    pose.position.y = 0.2;
+    pose.position.y = 0.3;
     pose.position.z = 1.0;
     pose.orientation.x = 0.0;
     pose.orientation.y = 0.0;
@@ -265,7 +265,7 @@ void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::Plann
             auto it = std::find_if(stored_contacts.begin(), stored_contacts.end(), [&c](const collision_detection::Contact& existing) { return existing == c; });
             if (it == stored_contacts.end()) {
                 stored_contacts.push_back(c);
-                adjusted_contacts.push_back(adjustContactPoint(c));
+                adjusted_contacts.push_back(adjustContactPoint(c, adjusted_contacts));
                 std::cout << " +++++++++++ New contact stored at: [" << c.pos.x() << ", " << c.pos.y() << ", " << c.pos.z() << "] +++++++++++" << std::endl;
                 hasNewContact = true;
             }
@@ -360,24 +360,49 @@ std::map<std::string, Eigen::Vector3d> ObjectCollisionTracker::getCornerPoints(c
     return corner_points;
 }
 
-collision_detection::Contact ObjectCollisionTracker::adjustContactPoint(const collision_detection::Contact& contact_point) {
+collision_detection::Contact ObjectCollisionTracker::adjustContactPoint(const collision_detection::Contact& contact_point,
+                                                                        const std::vector<collision_detection::Contact>& adjusted_contact_list) {
     collision_detection::Contact adjusted_contact = contact_point;
-    adjusted_contact.pos = determineNearestCornerPoint(contact_point, corner_points);
+    adjusted_contact.pos = determineNearestCornerPoint(contact_point, corner_points, adjusted_contact_list);
     adjusted_contact.pos.z() = contact_point.pos.z();
     return adjusted_contact;
 }
 
 Eigen::Vector3d ObjectCollisionTracker::determineNearestCornerPoint(const collision_detection::Contact& contact_point,
-                                                                    const std::map<std::string,Eigen::Vector3d>& cornerPoints) {
+                                                                    const std::map<std::string,Eigen::Vector3d>& cornerPoints,
+                                                                    const std::vector<collision_detection::Contact>& adjusted_contact_list) {
+    // Determine which corners are even possible
+    std::vector<Eigen::Vector3d> possible_corners;
+    collision_detection::Contact last_corner;
+    possible_corners.pushback(cornerPoints["x_low_y_low"]);
+    possible_corners.pushback(cornerPoints["x_low_y_high"]);
+    possible_corners.pushback(cornerPoints["x_high_y_low"]);
+    possible_corners.pushback(cornerPoints["x_high_y_high"]);
+
+    // TODO fix this
+    if (!adjusted_contact_ist.empty()) {
+        last_corner = adjusted_contact_list[adjusted_contact_list.size()-1];
+        auto it = possible_corners.find(last_corner.pos);
+        if (it != possible_corners.end()) {
+            possible_corners.remove(it);
+        }
+    }
+    
     Eigen::Vector3d nearest_corner;
     double shortest_distance = 100.0;
+    std::vector<double> distances;
+    distances.resize(4);
+    int i = 0;
     //std::string nearest_corner;
     for (auto pair : cornerPoints) {
-        double distance = (contact_point.pos - pair.second).norm();
-        if (distance < shortest_distance) {
-            shortest_distance = distance;
-            nearest_corner = pair.second;
+        distances[i] = (contact_point.pos - pair.second).norm();
+        if (pair != adjusted_contact_list[adjusted_contact_list.size()-1]) {
+            if (distance < shortest_distance) {
+                shortest_distance = distance;
+                nearest_corner = pair.second;
+            }
         }
+        i++;
     }
     return nearest_corner;
 }

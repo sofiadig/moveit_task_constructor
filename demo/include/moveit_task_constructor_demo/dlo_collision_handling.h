@@ -113,5 +113,10 @@ class Dlo_Collision_Handling
 		geometry_msgs::Pose place_pose_;
 		double place_surface_offset_;
 		geometry_msgs::Pose up_pose_;
+
+		std::vector<double> center_pose_2_;
+		std::vector<double> center_pose_1_;
+		double min_distance_;
+		double max_distance_;
 };
 }
