@@ -138,7 +138,8 @@ public:
     Eigen::Vector3d determineNearestCornerPoint(const collision_detection::Contact& contact_point,
                                                 const std::map<std::string,Eigen::Vector3d>& cornerPoints,
                                                 const std::vector<collision_detection::Contact>& adjusted_contact_list);
-    
+
+    bool arePoints2DEqual(const Eigen::Vector3d& p1, const Eigen::Vector3d& p2, double epsilon = 0.04);
     
 
     // Publisher and MArkerArray for visualization of contact points
