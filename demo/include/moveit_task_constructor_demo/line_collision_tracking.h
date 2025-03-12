@@ -129,13 +129,15 @@ public:
      * This function calls determineNearestCornerPoint() to find the corner point to which to 
      * project the contact point.
      */
-    collision_detection::Contact adjustContactPoint(const collision_detection::Contact& contact_point);
+    collision_detection::Contact adjustContactPoint(const collision_detection::Contact& contact_point,
+                                                    const std::vector<collision_detection::Contact>& adjusted_contact_list);
 
     /** \brief Determine the corner point that is nearest to the computed collision point between
      * the DLO and the obstacle.
      */
     Eigen::Vector3d determineNearestCornerPoint(const collision_detection::Contact& contact_point,
-                                                const std::map<std::string,Eigen::Vector3d>& cornerPoints);
+                                                const std::map<std::string,Eigen::Vector3d>& cornerPoints,
+                                                const std::vector<collision_detection::Contact>& adjusted_contact_list);
     
     
 

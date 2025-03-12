@@ -6,7 +6,7 @@ ObjectCollisionTracker::ObjectCollisionTracker() {
     visual_tools.reset(new rviz_visual_tools::RvizVisualTools("world", "/interactive_robot_marray"));
     visual_tools->loadMarkerPub();
     g_marker_array_publisher = nullptr;
-    isObjectDLO = false; // false: line marker, true: object
+    isObjectDLO = true; // false: line marker, true: object
 }
 
 // ==================================================================================================================================================
@@ -267,6 +267,7 @@ void ObjectCollisionTracker::computeCollisionContactPoints(planning_scene::Plann
                 stored_contacts.push_back(c);
                 adjusted_contacts.push_back(adjustContactPoint(c, adjusted_contacts));
                 std::cout << " +++++++++++ New contact stored at: [" << c.pos.x() << ", " << c.pos.y() << ", " << c.pos.z() << "] +++++++++++" << std::endl;
+                std::cout << " +++++++++++ And adjusted to      : [" << adjusted_contacts[adjusted_contacts.size()-1].pos.x() << ", " << adjusted_contacts[adjusted_contacts.size()-1].pos.y() << ", " << adjusted_contacts[adjusted_contacts.size()-1].pos.z() << "] +++++++++++" << std::endl;
                 hasNewContact = true;
             }
         }
@@ -349,7 +350,7 @@ std::map<std::string, Eigen::Vector3d> ObjectCollisionTracker::getCornerPoints(c
     x_low_y_high.z() = 0;
     corner_points["x_low_y_high"] =  x_low_y_high;
     x_high_y_low.x() = x_high;
-    x_high_y_low.y() = y_high;
+    x_high_y_low.y() = y_low;
     x_high_y_low.z() = 0;
     corner_points["x_high_y_low"] =  x_high_y_low;
     x_high_y_high.x() = x_high;
@@ -372,37 +373,109 @@ Eigen::Vector3d ObjectCollisionTracker::determineNearestCornerPoint(const collis
                                                                     const std::map<std::string,Eigen::Vector3d>& cornerPoints,
                                                                     const std::vector<collision_detection::Contact>& adjusted_contact_list) {
     // Determine which corners are even possible
-    std::vector<Eigen::Vector3d> possible_corners;
+    std::map<std::string,Eigen::Vector3d> possible_corners; // = cornerPoints;
     collision_detection::Contact last_corner;
-    possible_corners.pushback(cornerPoints["x_low_y_low"]);
-    possible_corners.pushback(cornerPoints["x_low_y_high"]);
-    possible_corners.pushback(cornerPoints["x_high_y_low"]);
-    possible_corners.pushback(cornerPoints["x_high_y_high"]);
+    double epsilon = 0.04;
+    // possible_corners.pushback(cornerPoints["x_low_y_low"]);
+    // possible_corners.pushback(cornerPoints["x_low_y_high"]);
+    // possible_corners.pushback(cornerPoints["x_high_y_low"]);
+    // possible_corners.pushback(cornerPoints["x_high_y_high"]);
 
     // TODO fix this
-    if (!adjusted_contact_ist.empty()) {
+    
+
+    if (!adjusted_contact_list.empty()) {
         last_corner = adjusted_contact_list[adjusted_contact_list.size()-1];
-        auto it = possible_corners.find(last_corner.pos);
-        if (it != possible_corners.end()) {
-            possible_corners.remove(it);
+        // double x = last_corner.pos.x();
+        // double y = last_corner.pos.y();
+        // if ( (x == 0.39 && y == 0.24) || (x == 0.51 && y == 0.24) ) { // x_low and y_low
+        //     possible_corners.insert({"x_low_y_high",cornerPoints.at("x_low_y_high")});
+        //     possible_corners.insert({"x_high_y_low",cornerPoints.at("x_high_y_low")});
+        // }
+        
+
+        if ( last_corner.pos.isApprox(cornerPoints.at("x_low_y_low"), epsilon) || last_corner.pos.isApprox(cornerPoints.at("x_high_y_high"), epsilon)) {
+            ROS_INFO_STREAM("We are in the case x_low and y_low ");
+            possible_corners.insert({"x_low_y_high",cornerPoints.at("x_low_y_high")});
+            possible_corners.insert({"x_high_y_low",cornerPoints.at("x_high_y_low")});
+            // possible_corners.erase("x_high_y_high"); // remove x_high_y_high
+            // possible_corners.erase("x_low_y_low"); // remove x_low_y_low
+        }
+        else if (last_corner.pos.isApprox(cornerPoints.at("x_low_y_high"), epsilon) || last_corner.pos.isApprox(cornerPoints.at("x_high_y_low"), epsilon)) { // & y_high
+            ROS_INFO_STREAM("We are in the case x_low and y_high ");
+            possible_corners.insert({"x_low_y_low",cornerPoints.at("x_low_y_low")});
+            possible_corners.insert({"x_high_y_high",cornerPoints.at("x_high_y_high")});
+            // possible_corners.erase("x_high_y_low");// remove x_high_y_low
+            // possible_corners.erase("x_low_y_high");// remove x_low_y_high
+        }
+        else {
+            ROS_WARN_STREAM("None of the corner points have been picked.");
+            possible_corners = cornerPoints;
         }
     }
+    else {
+        ROS_INFO_STREAM("We don't have any previous contact points.");
+        possible_corners = cornerPoints;
+    }
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        // // if ( x == cornerPoints.at("x_low_y_low").x()) { // if x_low
+        // if ( last_corner.pos.isApprox(cornerPoints.at("x_low_y_low"), epsilon)) {
+        //     ROS_INFO_STREAM("We are in the case x_low and y_low ");
+        //     //if( y == cornerPoints.at("x_low_y_low").y()) { // & y_low
+        //     if ( y.isApprox(cornerPoints.at("x_low_y_low").y(), epsilon)) {
+        //         std::cout << "and y_low";
+        //         possible_corners.erase("x_high_y_high"); // remove x_high_y_high
+        //         possible_corners.erase("x_low_y_low"); // remove x_low_y_low
+        //     }
+        //     else { // & y_high
+        //         std::cout << "and y_high";
+        //         possible_corners.erase("x_high_y_low");// remove x_high_y_low
+        //         possible_corners.erase("x_low_y_high");// remove x_low_y_high
+        //     }
+        // }
+        // else { // if x_high
+        //     ROS_INFO_STREAM("We are in the case x_high ");
+        //     //if( y == cornerPoints.at("x_high_y_low").y()) { // & y_low
+        //     if ( y.isApprox(cornerPoints.at("x_low_y_low").y(), epsilon)) {
+        //         possible_corners.erase("x_high_y_low");// remove x_high_y_low
+        //         possible_corners.erase("x_low_y_high");// remove x_low_y_high
+        //         std::cout << "and y_low";
+        //     }
+        //     else { // & y_high
+        //         std::cout << "and y_high";
+        //         possible_corners.erase("x_low_y_low");// remove x_low_y_low
+        //         possible_corners.erase("x_high_y_high");// remove x_high_y_high
+        //     }
+        // }
+        // auto it = possible_corners.find(last_corner.pos);
+        // if (it != possible_corners.end()) {
+        //     possible_corners.remove(it);
+        // }
+        
+    // }
     
     Eigen::Vector3d nearest_corner;
     double shortest_distance = 100.0;
-    std::vector<double> distances;
-    distances.resize(4);
-    int i = 0;
+    //double distance;
     //std::string nearest_corner;
-    for (auto pair : cornerPoints) {
-        distances[i] = (contact_point.pos - pair.second).norm();
-        if (pair != adjusted_contact_list[adjusted_contact_list.size()-1]) {
-            if (distance < shortest_distance) {
-                shortest_distance = distance;
-                nearest_corner = pair.second;
-            }
+    for (auto pair : possible_corners) {
+        std::cout << "We are checking the distance to point: " << pair.second;
+        double distance = (contact_point.pos - pair.second).norm();
+        if (distance < shortest_distance) {
+            shortest_distance = distance;
+            nearest_corner = pair.second;
         }
-        i++;
+        // if (pair != adjusted_contact_list[adjusted_contact_list.size()-1]) {}
+        // i++;
     }
     return nearest_corner;
 }
