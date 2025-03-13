@@ -151,6 +151,7 @@ public:
                       // false if it's supposed to be a line marker
 
     std::map<std::string, Eigen::Vector3d> corner_points; // The corner points of the obstacle
+    std::vector<moveit_msgs::CollisionObject> segments;
 
 
 };

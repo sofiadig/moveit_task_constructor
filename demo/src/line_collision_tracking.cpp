@@ -6,7 +6,7 @@ ObjectCollisionTracker::ObjectCollisionTracker() {
     visual_tools.reset(new rviz_visual_tools::RvizVisualTools("world", "/interactive_robot_marray"));
     visual_tools->loadMarkerPub();
     g_marker_array_publisher = nullptr;
-    isObjectDLO = true; // false: line marker, true: object
+    isObjectDLO = false; // false: line marker, true: object
 }
 
 // ==================================================================================================================================================
@@ -52,9 +52,9 @@ moveit_msgs::CollisionObject ObjectCollisionTracker::createSimpleObstacle() {
     object.primitives[0].dimensions.resize(3);
 	object.primitives[0].dimensions[0] = 0.1;
     object.primitives[0].dimensions[1] = 0.1;
-    object.primitives[0].dimensions[2] = 0.35;
+    object.primitives[0].dimensions[2] = 0.4;
     pose.position.x = 0.45;
-    pose.position.y = 0.3;
+    pose.position.y = 0.2;
     pose.position.z = 1.0;
     pose.orientation.x = 0.0;
     pose.orientation.y = 0.0;
@@ -93,13 +93,21 @@ void ObjectCollisionTracker::updateDLO(const geometry_msgs::PoseStamped&  start_
             std::string segment_name = "segment_" + std::to_string(num_segments);
             first_segment.id = segment_name;
             first_segment.header.frame_id = "world";
-            initObject(start_pose, contactPos, first_segment, psi);
-            num_segments++;
+            segments.push_back(first_segment);
+            initObject(start_pose, contactPos, segments[segments.size()-1], psi);
+            ROS_INFO_STREAM("Added a segment object called: " + segments.back().id);
+            ROS_INFO_STREAM("The following segments exist now: ");
+            for (auto it : segments) {
+                std::cout << it.id << ", ";
+            }
+            
+            // num_segments++;
         }
         else {
             updateLineMarker(start_pose.pose.position, contactPos.pose.position, num_segments);
-            num_segments++;
+            // num_segments++;
         }
+        num_segments++;
     }
     // 2. Set the start pose of the second line as the contact point, end pose stays the same
     updateObject(contactPos, end_pose, collision_object, planning_scene_ptr, psi, num_segments);
@@ -382,7 +390,7 @@ Eigen::Vector3d ObjectCollisionTracker::determineNearestCornerPoint(const collis
 
     if (!adjusted_contact_list.empty()) {
         last_corner = adjusted_contact_list[adjusted_contact_list.size()-1];
-        
+
         // if ( last_corner.pos.isApprox(cornerPoints.at("x_low_y_low"), epsilon) || last_corner.pos.isApprox(cornerPoints.at("x_high_y_high"), epsilon)) {
         if ( arePoints2DEqual(last_corner.pos, cornerPoints.at("x_low_y_low")) || arePoints2DEqual(last_corner.pos, cornerPoints.at("x_high_y_high"))) {
             ROS_INFO_STREAM("We are in the case x_low_y_low OR x_high_y_high.");
@@ -500,7 +508,7 @@ int main(int argc, char** argv) {
     objectCollisionTracker->initObject(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object, psi); // For visualization in Rviz. initObject must come before updateObject!
     objectCollisionTracker->updateObject(steady_hand_tip_pose, moving_hand_tip_pose, dynamic_object, planning_scene, psi, num_segments); // For collision checking
     
-    ros::Duration(0.5).sleep(); // Wait period to make sure they are added
+    ros::Duration(0.5).sleep(); // Wait period to make sure the objects are added
 
 
     // ===================== Check if pillar and DLO are both successfully added in scene  ======================

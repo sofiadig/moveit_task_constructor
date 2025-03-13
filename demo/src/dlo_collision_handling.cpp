@@ -535,6 +535,7 @@ bool Dlo_Collision_Handling::init() {
 		vec.header.frame_id = world_frame_;
 		//vec.vector.x = 0.1;
 		vec.vector.y = -1.0;
+		vec.vector.z = 0.1;
 		stage->setDirection(vec);
 		//hand_2_prep_ptr = stage.get();
 		t.add(std::move(stage));
@@ -556,7 +557,7 @@ bool Dlo_Collision_Handling::init() {
 		geometry_msgs::Vector3Stamped vec;
 		vec.header.frame_id = world_frame_;
 		vec.vector.x = -1.0;
-		vec.vector.z = 0.05;
+		vec.vector.z = 0.1;
 		stage->setDirection(vec);
 		//hand_2_prep_ptr = stage.get();
 		t.add(std::move(stage));
