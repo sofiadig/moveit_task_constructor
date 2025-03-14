@@ -116,6 +116,8 @@ class Dlo_Collision_Handling
 
 		std::vector<double> center_pose_2_;
 		std::vector<double> center_pose_1_;
+		std::vector<double> cc_pose_;
+		bool clockwise_;
 		double min_distance_;
 		double max_distance_;
 };
