@@ -473,15 +473,15 @@ bool Dlo_Collision_Handling::init() {
 			// Position
 			hand_center_pose.header.frame_id = object_reference_frame_;
 			// hand_center_pose.pose.position = center_pose_1_.position;
-			if (clockwise_)	// hand_center_pose.pose.position = center_pose_1_.position;
+			if (clockwise_)	{ // hand_center_pose.pose.position = center_pose_1_.position;
 				hand_center_pose.pose.position.x = center_pose_2_[0];
 				hand_center_pose.pose.position.y = center_pose_2_[1];
 				hand_center_pose.pose.position.z = center_pose_2_[2];
 			}
 			else {
-				hand_center_pose.pose.position.x = cc_pose[0];
-				hand_center_pose.pose.position.y = cc_pose[1];
-				hand_center_pose.pose.position.z = cc_pose[2];
+				hand_center_pose.pose.position.x = cc_pose_[0];
+				hand_center_pose.pose.position.y = cc_pose_[1];
+				hand_center_pose.pose.position.z = cc_pose_[2];
 			}
 				// hand_center_pose.pose.position.x = center_pose_2_[0];
 				// hand_center_pose.pose.position.y = center_pose_2_[1];
@@ -530,8 +530,15 @@ bool Dlo_Collision_Handling::init() {
 		stage->properties().set("marker_ns", "retreat");
 		geometry_msgs::Vector3Stamped vec;
 		vec.header.frame_id = world_frame_;
-		vec.vector.x = 1.0;
-		vec.vector.y = 0.0;
+		if (clockwise_) {
+			vec.vector.x = 1.0;
+			vec.vector.y = 0.0;
+		}
+		else {
+			vec.vector.x = 1.0;
+			vec.vector.y = 0.0;
+		}
+		
 		vec.vector.z = 0.1;
 		stage->setDirection(vec);
 		//hand_2_prep_ptr = stage.get();
@@ -545,7 +552,7 @@ bool Dlo_Collision_Handling::init() {
 	 ***************************************************/
 	//Stage* move_forward_stage_ptr = nullptr;
 	{
-		auto stage = std::make_unique<stages::MoveRelative>("move backward", cartesian_planner);
+		auto stage = std::make_unique<stages::MoveRelative>("move sideways", cartesian_planner);
 		stage->properties().configureInitFrom(Stage::PARENT, { "group" });
 		//stage->setGroup(arm_1_group_name_);
 		stage->setMinMaxDistance(0.3, 0.4);
@@ -553,12 +560,46 @@ bool Dlo_Collision_Handling::init() {
 		stage->properties().set("marker_ns", "retreat");
 		geometry_msgs::Vector3Stamped vec;
 		vec.header.frame_id = world_frame_;
-		vec.vector.x = 0.0;
-		vec.vector.y = 1.0;
+		if (clockwise_) {
+			vec.vector.x = 0.0;
+			vec.vector.y = -1.0;
+		}
+		else {
+			vec.vector.x = 0.0;
+			vec.vector.y = 1.0;
+		}
+		
 		vec.vector.z = 0.1;
 		stage->setDirection(vec);
 		//hand_2_prep_ptr = stage.get();
 		t.add(std::move(stage));
+	}
+
+	if (!clockwise_) {
+		/****************************************************
+		 *                                                  *
+		 *          Hand_1     Move backwards               *
+		 *                                                  *
+		 ***************************************************/
+		//Stage* move_forward_stage_ptr = nullptr;
+		{
+			auto stage = std::make_unique<stages::MoveRelative>("move backward", cartesian_planner);
+			stage->properties().configureInitFrom(Stage::PARENT, { "group" });
+			//stage->setGroup(arm_1_group_name_);
+			stage->setMinMaxDistance(0.3, 0.4);
+			stage->setIKFrame(hand_1_frame_);
+			stage->properties().set("marker_ns", "retreat");
+			geometry_msgs::Vector3Stamped vec;
+			vec.header.frame_id = world_frame_;
+			
+			vec.vector.x = -1.0;
+			vec.vector.y = 0.0;
+			
+			vec.vector.z = 0.1;
+			stage->setDirection(vec);
+			t.add(std::move(stage));
+		}
+
 	}
 
 
