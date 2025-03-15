@@ -53,7 +53,7 @@ moveit_msgs::CollisionObject ObjectCollisionTracker::createSimpleObstacle() {
 	object.primitives[0].dimensions[0] = 0.1;
     object.primitives[0].dimensions[1] = 0.1;
     object.primitives[0].dimensions[2] = 0.4;
-    pose.position.x = 0.45;
+    pose.position.x = 0.47;
     pose.position.y = 0.37;
     pose.position.z = 1.0;
     pose.orientation.x = 0.0;

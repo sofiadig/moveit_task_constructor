@@ -555,7 +555,7 @@ bool Dlo_Collision_Handling::init() {
 			
 			// Compute IK
 			auto wrapper = std::make_unique<stages::ComputeIK>("center pose IK", std::move(stage));
-			wrapper->setMaxIKSolutions(8);
+			wrapper->setMaxIKSolutions(10);
 			wrapper->setMinSolutionDistance(1.0);
 			wrapper->setIKFrame(hand_1_frame_);
 			wrapper->properties().configureInitFrom(Stage::PARENT, { "eef", "group" });
@@ -563,31 +563,31 @@ bool Dlo_Collision_Handling::init() {
 
 
 			// ======== Set path constraints ===========
-			moveit_msgs::Constraints path_constraints;
-			moveit_msgs::PositionConstraint position_constraint;
+			// moveit_msgs::Constraints path_constraints;
+			// moveit_msgs::PositionConstraint position_constraint;
 
-			// Define the reference frame and link
-			position_constraint.header.frame_id = "world";  // Base frame
-			position_constraint.link_name = "panda_1_link8";  // Constraint applied to end-effector
-			position_constraint.weight = 1.0;
+			// // Define the reference frame and link
+			// position_constraint.header.frame_id = "world";  // Base frame
+			// position_constraint.link_name = "panda_1_link8";  // Constraint applied to end-effector
+			// position_constraint.weight = 1.0;
 
-			// Define a box-shaped constraint region
-			position_constraint.constraint_region.primitives.resize(1);
-			position_constraint.constraint_region.primitives[0].type = shape_msgs::SolidPrimitive::BOX;
-			position_constraint.constraint_region.primitives[0].dimensions = {5.0, 5.0, 5.0};  // (X, Y, Z) size
+			// // Define a box-shaped constraint region
+			// position_constraint.constraint_region.primitives.resize(1);
+			// position_constraint.constraint_region.primitives[0].type = shape_msgs::SolidPrimitive::BOX;
+			// position_constraint.constraint_region.primitives[0].dimensions = {5.0, 5.0, 5.0};  // (X, Y, Z) size
 
-			// Set the box position (center of the allowed region)
-			geometry_msgs::Pose box_pose;
-			box_pose.position.x = 0.1;
-			box_pose.position.y = 0.0;
-			box_pose.position.z = 1.0;  // Keep end-effector in this Z range
-			box_pose.orientation.w = 1.0;
-			//box_pose.position.x -= 0.5 * position_constraint.constraint_region.primitives[0].dimensions[0];
-			position_constraint.constraint_region.primitive_poses.push_back(box_pose);
+			// // Set the box position (center of the allowed region)
+			// geometry_msgs::Pose box_pose;
+			// box_pose.position.x = 0.1;
+			// box_pose.position.y = 0.0;
+			// box_pose.position.z = 1.0;  // Keep end-effector in this Z range
+			// box_pose.orientation.w = 1.0;
+			// //box_pose.position.x -= 0.5 * position_constraint.constraint_region.primitives[0].dimensions[0];
+			// position_constraint.constraint_region.primitive_poses.push_back(box_pose);
 
-			// Apply constraints to the path
-			path_constraints.position_constraints.push_back(position_constraint);
-			wrapper->properties().set("path_constraints", path_constraints);
+			// // Apply constraints to the path
+			// path_constraints.position_constraints.push_back(position_constraint);
+			// wrapper->properties().set("path_constraints", path_constraints);
 
 
 			prep->insert(std::move(wrapper));
@@ -601,7 +601,7 @@ bool Dlo_Collision_Handling::init() {
 	if (!clockwise_) {
 		/****************************************************
 		 *                                                  *
-		 *          Hand_1     Move backwards               *
+		 *          Hand_1     Move to center               *
 		 *                                                  *
 		 ***************************************************/
 		{
@@ -621,36 +621,39 @@ bool Dlo_Collision_Handling::init() {
 			stage->setDirection(vec);
 			t.add(std::move(stage));
 		}
-	}
+	
 
-	/****************************************************
-	 *                                                  *
-	 *          Hand_1     Move forward                 *
-	 *                                                  *
-	 ***************************************************/
-	//Stage* move_forward_stage_ptr = nullptr;
-	{
-		auto stage = std::make_unique<stages::MoveRelative>("move forward", cartesian_planner);
-		stage->properties().configureInitFrom(Stage::PARENT, { "group" });
-		//stage->setGroup(arm_1_group_name_);
-		stage->setMinMaxDistance(0.3, 0.35);
-		stage->setIKFrame(hand_1_frame_);
-		stage->properties().set("marker_ns", "retreat");
-		geometry_msgs::Vector3Stamped vec;
-		vec.header.frame_id = world_frame_;
-		if (clockwise_) {
+		/****************************************************
+		 *                                                  *
+		 *          Hand_1     Move forward                 *
+		 *                                                  *
+		 ***************************************************/
+		//Stage* move_forward_stage_ptr = nullptr;
+		{
+			auto stage = std::make_unique<stages::MoveRelative>("move forward", cartesian_planner);
+			stage->properties().configureInitFrom(Stage::PARENT, { "group" });
+			//stage->setGroup(arm_1_group_name_);
+			
+			stage->setIKFrame(hand_1_frame_);
+			stage->properties().set("marker_ns", "retreat");
+			geometry_msgs::Vector3Stamped vec;
+			vec.header.frame_id = world_frame_;
+			// if (clockwise_) {
+			// 	vec.vector.x = 1.0;
+			// 	vec.vector.y = 0.0;
+			// 	stage->setMinMaxDistance(0.1, 0.35);
+			// }
+			// else {
 			vec.vector.x = 1.0;
 			vec.vector.y = 0.0;
+			stage->setMinMaxDistance(0.3, 0.35);
+			// }
+			
+			vec.vector.z = 0.1;
+			stage->setDirection(vec);
+			//hand_2_prep_ptr = stage.get();
+			t.add(std::move(stage));
 		}
-		else {
-			vec.vector.x = 1.0;
-			vec.vector.y = 0.0;
-		}
-		
-		vec.vector.z = 0.1;
-		stage->setDirection(vec);
-		//hand_2_prep_ptr = stage.get();
-		t.add(std::move(stage));
 	}
 
 	/****************************************************
@@ -663,7 +666,7 @@ bool Dlo_Collision_Handling::init() {
 		auto stage = std::make_unique<stages::MoveRelative>("move sideways", cartesian_planner);
 		stage->properties().configureInitFrom(Stage::PARENT, { "group" });
 		//stage->setGroup(arm_1_group_name_);
-		stage->setMinMaxDistance(0.3, 0.45);
+		
 		stage->setIKFrame(hand_1_frame_);
 		stage->properties().set("marker_ns", "retreat");
 		geometry_msgs::Vector3Stamped vec;
@@ -671,10 +674,12 @@ bool Dlo_Collision_Handling::init() {
 		if (clockwise_) {
 			vec.vector.x = 0.0;
 			vec.vector.y = -1.0;
+			stage->setMinMaxDistance(0.2, 0.3);
 		}
 		else {
 			vec.vector.x = 0.0;
 			vec.vector.y = 1.0;
+			stage->setMinMaxDistance(0.3, 0.45);
 		}
 		
 		vec.vector.z = 0.1;
@@ -757,6 +762,31 @@ bool Dlo_Collision_Handling::init() {
 		}
 
 
+	}
+	else {
+		/****************************************************
+		 *                                                  *
+		 *          Hand_1     Move backwards               *
+		 *                                                  *
+		 ***************************************************/
+		//Stage* move_forward_stage_ptr = nullptr;
+		{
+			auto stage = std::make_unique<stages::MoveRelative>("move backward", cartesian_planner);
+			stage->properties().configureInitFrom(Stage::PARENT, { "group" });
+			//stage->setGroup(arm_1_group_name_);
+			stage->setMinMaxDistance(0.3, 0.4);
+			stage->setIKFrame(hand_1_frame_);
+			stage->properties().set("marker_ns", "retreat");
+			geometry_msgs::Vector3Stamped vec;
+			vec.header.frame_id = world_frame_;
+			
+			vec.vector.x = -1.0;
+			vec.vector.y = 0.0;
+			
+			vec.vector.z = 0.1;
+			stage->setDirection(vec);
+			t.add(std::move(stage));
+		}
 	}
 
 
