@@ -732,6 +732,31 @@ bool Dlo_Collision_Handling::init() {
 			t.add(std::move(stage));
 		}
 
+		/****************************************************
+		 *                                                  *
+		 *          Hand_1     Move sideways                *
+		 *                                                  *
+		 ***************************************************/
+		//Stage* move_forward_stage_ptr = nullptr;
+		{
+			auto stage = std::make_unique<stages::MoveRelative>("move forward", cartesian_planner);
+			stage->properties().configureInitFrom(Stage::PARENT, { "group" });
+			//stage->setGroup(arm_1_group_name_);
+			stage->setMinMaxDistance(0.3, 0.4);
+			stage->setIKFrame(hand_1_frame_);
+			stage->properties().set("marker_ns", "retreat");
+			geometry_msgs::Vector3Stamped vec;
+			vec.header.frame_id = world_frame_;
+			
+			vec.vector.x = 1.0;
+			vec.vector.y = 0.0;
+			
+			vec.vector.z = 0.1;
+			stage->setDirection(vec);
+			t.add(std::move(stage));
+		}
+
+
 	}
 
 
