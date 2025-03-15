@@ -9,6 +9,7 @@
 #include <trajectory_msgs/JointTrajectory.h>
 #include <moveit_msgs/AttachedCollisionObject.h>
 #include <moveit_msgs/CollisionObject.h>
+#include <moveit_msgs/Constraints.h>
 
 // MTC
 #include <moveit/task_constructor/task.h>
@@ -26,6 +27,7 @@
 #include <moveit/task_constructor/solvers/cartesian_path.h>
 #include <moveit/task_constructor/solvers/pipeline_planner.h>
 #include <moveit_task_constructor_msgs/ExecuteTaskSolutionAction.h>
+
 
 // Marker
 #include <visualization_msgs/Marker.h>
