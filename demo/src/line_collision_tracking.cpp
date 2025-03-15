@@ -100,12 +100,9 @@ void ObjectCollisionTracker::updateDLO(const geometry_msgs::PoseStamped&  start_
             for (auto it : segments) {
                 std::cout << it.id << ", ";
             }
-            
-            // num_segments++;
         }
         else {
             updateLineMarker(start_pose.pose.position, contactPos.pose.position, num_segments);
-            // num_segments++;
         }
         num_segments++;
     }
@@ -475,7 +472,6 @@ int main(int argc, char** argv) {
     object_group1.push_back(dynamic_object.id);
     object_group2.push_back(pillar.id);
 
-    //ros::Duration(1.0).sleep(); // Wait for planning scene to be updated
     planning_scene_monitor->requestPlanningSceneState();
     planning_scene::PlanningScenePtr planning_scene = planning_scene_monitor->getPlanningScene();
 

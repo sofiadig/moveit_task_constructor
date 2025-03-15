@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
 	ros::AsyncSpinner spinner(1);
 	spinner.start();
 
-	moveit_task_constructor_demo::setupDemoScene(pnh);
+	// moveit_task_constructor_demo::setupDemoScene(pnh);
 
 	// Construct and run pick/place task
 	moveit_task_constructor_demo::Dlo_Collision_Handling dlo_collision_handling("dlo_collision_handling", pnh);

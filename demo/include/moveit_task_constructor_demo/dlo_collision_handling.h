@@ -42,8 +42,8 @@ namespace moveit_task_constructor_demo {
 	using namespace moveit::task_constructor;
 
 // prepare a demo environment from ROS parameters under pnh
-void setupDemoScene(ros::NodeHandle& pnh);
-void setupLineMarker(ros::NodeHandle& pnh, ros::Publisher marker_pub);
+// void setupDemoScene(ros::NodeHandle& pnh);
+// void setupLineMarker(ros::NodeHandle& pnh, ros::Publisher marker_pub);
 class Dlo_Collision_Handling
 {
 	public:
@@ -118,7 +118,7 @@ class Dlo_Collision_Handling
 
 		std::vector<double> center_pose_2_;
 		std::vector<double> center_pose_1_;
-		std::vector<double> cc_pose_;
+		std::vector<double> counterclockwise_pose_;
 		bool clockwise_;
 		double min_distance_;
 		double max_distance_;
