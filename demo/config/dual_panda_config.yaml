@@ -61,7 +61,8 @@ dlo_name: "dynamic_object"
 dlo_reference_frame: "world"
 
 marker_name: "line_marker"
-clockwise: true
+clockwise: true # If true, the gripper will wrap the DLO around the obstacle in a clockwise motion
+                # if false, it will do the same in a counter clockwise motion
 
 # Table model
 spawn_table: false
